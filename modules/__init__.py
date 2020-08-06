@@ -23,14 +23,14 @@ class Hopfield(Module):
                  update_steps_max: Optional[Union[int, Tensor]] = 0,
                  update_steps_eps: Union[float, Tensor] = 1e-4,
 
-                 normalise_stored_pattern: bool = True,
-                 normalise_stored_pattern_affine: bool = True,
-                 normalise_state_pattern: bool = True,
-                 normalise_state_pattern_affine: bool = True,
-                 normalise_pattern_projection: bool = True,
-                 normalise_pattern_projection_affine: bool = True,
-                 normalise_hopfield_space: bool = False,
-                 normalise_hopfield_space_affine: bool = False,
+                 normalize_stored_pattern: bool = True,
+                 normalize_stored_pattern_affine: bool = True,
+                 normalize_state_pattern: bool = True,
+                 normalize_state_pattern_affine: bool = True,
+                 normalize_pattern_projection: bool = True,
+                 normalize_pattern_projection_affine: bool = True,
+                 normalize_hopfield_space: bool = False,
+                 normalize_hopfield_space_affine: bool = False,
                  stored_pattern_as_static: bool = False,
                  state_pattern_as_static: bool = False,
                  pattern_projection_as_static: bool = False,
@@ -55,14 +55,14 @@ class Hopfield(Module):
         :param scaling: scaling of association heads, often represented as beta (one entry per head)
         :param update_steps_max: maximum count of association update steps (None equals to infinity)
         :param update_steps_eps: minimum difference threshold between two consecutive association update steps
-        :param normalise_stored_pattern: apply normalisation on stored patterns
-        :param normalise_stored_pattern_affine: additionally enable affine normalisation of stored patterns
-        :param normalise_state_pattern: apply normalisation on state patterns
-        :param normalise_state_pattern_affine: additionally enable affine normalisation of state patterns
-        :param normalise_pattern_projection: apply normalisation on the pattern projection
-        :param normalise_pattern_projection_affine: additionally enable affine normalisation of pattern projection
-        :param normalise_hopfield_space: enable normalisation of patterns in the Hopfield space
-        :param normalise_hopfield_space_affine: additionally enable affine normalisation of patterns in Hopfield space
+        :param normalize_stored_pattern: apply normalisation on stored patterns
+        :param normalize_stored_pattern_affine: additionally enable affine normalisation of stored patterns
+        :param normalize_state_pattern: apply normalisation on state patterns
+        :param normalize_state_pattern_affine: additionally enable affine normalisation of state patterns
+        :param normalize_pattern_projection: apply normalisation on the pattern projection
+        :param normalize_pattern_projection_affine: additionally enable affine normalisation of pattern projection
+        :param normalize_hopfield_space: enable normalisation of patterns in the Hopfield space
+        :param normalize_hopfield_space_affine: additionally enable affine normalisation of patterns in Hopfield space
         :param stored_pattern_as_static: interpret specified stored patterns as being static
         :param state_pattern_as_static: interpret specified state patterns as being static
         :param pattern_projection_as_static: interpret specified pattern projections as being static
@@ -87,37 +87,37 @@ class Hopfield(Module):
             vdim=pattern_projection_size, head_dim=hidden_size, out_dim=output_size,
             disable_out_projection=disable_out_projection, key_as_static=stored_pattern_as_static,
             query_as_static=state_pattern_as_static, value_as_static=pattern_projection_as_static,
-            normalise_pattern=normalise_hopfield_space, normalise_pattern_affine=normalise_hopfield_space_affine)
+            normalize_pattern=normalize_hopfield_space, normalize_pattern_affine=normalize_hopfield_space_affine)
         self.association_activation = None
         if association_activation is not None:
             self.association_activation = getattr(torch, association_activation, None)
 
         # Initialise stored pattern normalisation.
         self.norm_stored_pattern = None
-        if normalise_stored_pattern_affine:
-            assert normalise_stored_pattern, "affine normalisation without normalisation has no effect."
-        if normalise_stored_pattern:
+        if normalize_stored_pattern_affine:
+            assert normalize_stored_pattern, "affine normalisation without normalisation has no effect."
+        if normalize_stored_pattern:
             self.norm_stored_pattern = nn.LayerNorm(
                 normalized_shape=self.hidden_size if stored_pattern_as_static else self.association_core.kdim,
-                elementwise_affine=normalise_stored_pattern_affine)
+                elementwise_affine=normalize_stored_pattern_affine)
 
         # Initialise state pattern normalisation.
         self.norm_state_pattern = None
-        if normalise_state_pattern_affine:
-            assert normalise_state_pattern, "affine normalisation without normalisation has no effect."
-        if normalise_state_pattern:
+        if normalize_state_pattern_affine:
+            assert normalize_state_pattern, "affine normalisation without normalisation has no effect."
+        if normalize_state_pattern:
             self.norm_state_pattern = nn.LayerNorm(
                 normalized_shape=self.hidden_size if state_pattern_as_static else self.association_core.embed_dim,
-                elementwise_affine=normalise_state_pattern_affine)
+                elementwise_affine=normalize_state_pattern_affine)
 
         # Initialise pattern projection normalisation.
         self.norm_pattern_projection = None
-        if normalise_pattern_projection_affine:
-            assert normalise_pattern_projection, "affine normalisation without normalisation has no effect."
-        if normalise_pattern_projection:
+        if normalize_pattern_projection_affine:
+            assert normalize_pattern_projection, "affine normalisation without normalisation has no effect."
+        if normalize_pattern_projection:
             self.norm_pattern_projection = nn.LayerNorm(
                 normalized_shape=self.hidden_size if pattern_projection_as_static else self.association_core.vdim,
-                elementwise_affine=normalise_pattern_projection_affine)
+                elementwise_affine=normalize_pattern_projection_affine)
 
         # Initialise remaining auxiliary properties.
         assert self.association_core.head_dim > 0, f'invalid hidden dimension encountered.'
@@ -138,13 +138,18 @@ class Hopfield(Module):
             return transposed_result[0] if len(transposed_result) == 1 else transposed_result
         return args
 
-    def _associate(self, data: Union[Tensor, Tuple[Tensor, Tensor, Tensor]], return_raw_associations: bool = False,
+    def _associate(self, data: Union[Tensor, Tuple[Tensor, Tensor, Tensor]],
+                   return_raw_associations: bool = False, return_projected_patterns: bool = False,
                    stored_pattern_padding_mask: Optional[Tensor] = None,
                    association_mask: Optional[Tensor] = None) -> Tuple[Optional[Tensor], ...]:
         """
         Apply Hopfield association module on specified data.
 
         :param data: data to be processed by Hopfield core module
+        :param return_raw_associations: return raw association (softmax) values, unmodified
+        :param return_projected_patterns: return pattern projection values, unmodified
+        :param stored_pattern_padding_mask: mask to be applied on stored patterns
+        :param association_mask: mask to be applied on inner association matrix
         :return: Hopfield-processed input data
         """
         assert (type(data) == Tensor) or ((type(data) == tuple) and (len(data) == 3)), \
@@ -161,25 +166,25 @@ class Hopfield(Module):
 
         # Optionally apply stored pattern normalisation.
         if self.norm_stored_pattern is not None:
-            stored_pattern = self.norm_stored_pattern.forward(input=stored_pattern.reshape(
+            stored_pattern = self.norm_stored_pattern(input=stored_pattern.reshape(
                 shape=(-1, stored_pattern.shape[2]))).reshape(shape=stored_pattern.shape)
 
         # Optionally apply state pattern normalisation.
         if self.norm_state_pattern is not None:
-            state_pattern = self.norm_state_pattern.forward(input=state_pattern.reshape(
+            state_pattern = self.norm_state_pattern(input=state_pattern.reshape(
                 shape=(-1, state_pattern.shape[2]))).reshape(shape=state_pattern.shape)
 
         # Optionally apply pattern projection normalisation.
         if self.norm_pattern_projection is not None:
-            pattern_projection = self.norm_pattern_projection.forward(input=pattern_projection.reshape(
+            pattern_projection = self.norm_pattern_projection(input=pattern_projection.reshape(
                 shape=(-1, pattern_projection.shape[2]))).reshape(shape=pattern_projection.shape)
 
         # Apply Hopfield association and optional activation function.
-        return self.association_core.forward(
+        return self.association_core(
             query=state_pattern, key=stored_pattern, value=pattern_projection,
             key_padding_mask=stored_pattern_padding_mask, need_weights=False, attn_mask=association_mask,
             scaling=self.__scaling, update_steps_max=self.__update_steps_max, update_steps_eps=self.__update_steps_eps,
-            return_raw_associations=return_raw_associations)
+            return_raw_associations=return_raw_associations, return_pattern_projections=return_projected_patterns)
 
     def forward(self, input: Union[Tensor, Tuple[Tensor, Tensor, Tensor]],
                 stored_pattern_padding_mask: Optional[Tensor] = None,
@@ -197,18 +202,42 @@ class Hopfield(Module):
             stored_pattern_padding_mask=stored_pattern_padding_mask,
             association_mask=association_mask)[0])
         if self.association_activation is not None:
-            association_output = self.association_activation.forward(association_output)
+            association_output = self.association_activation(association_output)
         return association_output
 
-    def get_association_matrix(self, input: Union[Tensor, Tuple[Tensor, Tensor, Tensor]]) -> Tensor:
+    def get_association_matrix(self, input: Union[Tensor, Tuple[Tensor, Tensor, Tensor]],
+                               stored_pattern_padding_mask: Optional[Tensor] = None,
+                               association_mask: Optional[Tensor] = None) -> Tensor:
         """
         Fetch Hopfield association matrix gathered by passing through the specified data.
 
         :param input: data to be passed through the Hopfield association
+        :param stored_pattern_padding_mask: mask to be applied on stored patterns
+        :param association_mask: mask to be applied on inner association matrix
         :return: association matrix as computed by the Hopfield core module
         """
         with torch.no_grad():
-            return self._associate(data=input, return_raw_associations=True)[2]
+            return self._associate(
+                data=input, return_raw_associations=True,
+                stored_pattern_padding_mask=stored_pattern_padding_mask,
+                association_mask=association_mask)[2]
+
+    def get_projected_pattern_matrix(self, input: Union[Tensor, Tuple[Tensor, Tensor, Tensor]],
+                                     stored_pattern_padding_mask: Optional[Tensor] = None,
+                                     association_mask: Optional[Tensor] = None) -> Tensor:
+        """
+        Fetch Hopfield projected pattern matrix gathered by passing through the specified data.
+
+        :param input: data to be passed through the Hopfield association
+        :param stored_pattern_padding_mask: mask to be applied on stored patterns
+        :param association_mask: mask to be applied on inner association matrix
+        :return: pattern projection matrix as computed by the Hopfield core module
+        """
+        with torch.no_grad():
+            return self._associate(
+                data=input, return_projected_patterns=True,
+                stored_pattern_padding_mask=stored_pattern_padding_mask,
+                association_mask=association_mask)[3]
 
     @property
     def batch_first(self) -> bool:
@@ -250,6 +279,42 @@ class Hopfield(Module):
     def update_steps_eps(self) -> Optional[Union[float, Tensor]]:
         return self.__update_steps_eps.clone() if type(self.__update_steps_eps) == Tensor else self.__update_steps_eps
 
+    @property
+    def stored_pattern_as_static(self) -> bool:
+        return self.association_core.key_as_static
+
+    @property
+    def state_pattern_as_static(self) -> bool:
+        return self.association_core.query_as_static
+
+    @property
+    def pattern_projection_as_static(self) -> bool:
+        return self.association_core.value_as_static
+
+    @property
+    def normalize_stored_pattern(self) -> bool:
+        return self.norm_stored_pattern is not None
+
+    @property
+    def normalize_stored_pattern_affine(self) -> bool:
+        return self.normalize_stored_pattern and self.norm_stored_pattern.elementwise_affine
+
+    @property
+    def normalize_state_pattern(self) -> bool:
+        return self.norm_state_pattern is not None
+
+    @property
+    def normalize_state_pattern_affine(self) -> bool:
+        return self.normalize_state_pattern and self.norm_state_pattern.elementwise_affine
+
+    @property
+    def normalize_pattern_projection(self) -> bool:
+        return self.norm_pattern_projection is not None
+
+    @property
+    def normalize_pattern_projection_affine(self) -> bool:
+        return self.normalize_pattern_projection and self.norm_pattern_projection.elementwise_affine
+
 
 class StatePattern(Module):
     """
@@ -258,19 +323,21 @@ class StatePattern(Module):
 
     def __init__(self,
                  size: int,
+                 quantity: int = 1,
                  batch_first: bool = True,
                  trainable: bool = True
                  ):
         """
         Initialise a new instance of a state pattern wrapper.
 
-        :param size: depth of the state pattern
+        :param size: depth of a state pattern
+        :param quantity: amount of state patterns
         :param batch_first: flag for specifying if the first dimension of data fed to "forward" reflects the batch size
-        :param trainable: state pattern is trainable
+        :param trainable: state patterns are trainable
         """
         super(StatePattern, self).__init__()
         self.__batch_first = batch_first
-        self.state_pattern = nn.Parameter(torch.empty(size=(1, 1, size)), requires_grad=trainable)
+        self.state_pattern = nn.Parameter(torch.empty(size=(quantity, 1, size)), requires_grad=trainable)
         self._reset_parameters()
 
     def _reset_parameters(self) -> None:
@@ -279,7 +346,7 @@ class StatePattern(Module):
 
         :return: None
         """
-        nn.init.xavier_uniform_(self.state_pattern)
+        nn.init.normal_(self.state_pattern, mean=0.0, std=0.02)
 
     def forward(self, input: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         """
@@ -288,14 +355,21 @@ class StatePattern(Module):
         :param input: external input to pass-through as stored pattern and pattern projection
         :return: tuple containing stored and state pattern as well as pattern projection
         """
-        state_pattern_expanded = self.state_pattern.expand(size=(1, input.shape[0], self.state_pattern.shape[2]))
         if self.__batch_first:
-            state_pattern_expanded = state_pattern_expanded.transpose(0, 1)
+            state_pattern_expanded = self.state_pattern.expand(
+                size=(self.state_pattern.shape[0], input.shape[0], self.state_pattern.shape[2])).transpose(0, 1)
+        else:
+            state_pattern_expanded = self.state_pattern.expand(
+                size=(self.state_pattern.shape[0], input.shape[1], self.state_pattern.shape[2]))
         return input, state_pattern_expanded, input
 
     @property
     def batch_first(self) -> bool:
         return self.__batch_first
+
+    @property
+    def quantity(self) -> int:
+        return self.state_pattern.shape[0]
 
     @property
     def output_size(self) -> int:
@@ -317,14 +391,14 @@ class HopfieldPooling(Module):
                  update_steps_max: Optional[Union[int, Tensor]] = 0,
                  update_steps_eps: Union[float, Tensor] = 1e-4,
 
-                 normalise_stored_pattern: bool = True,
-                 normalise_stored_pattern_affine: bool = True,
-                 normalise_state_pattern: bool = True,
-                 normalise_state_pattern_affine: bool = True,
-                 normalise_pattern_projection: bool = True,
-                 normalise_pattern_projection_affine: bool = True,
-                 normalise_hopfield_space: bool = False,
-                 normalise_hopfield_space_affine: bool = False,
+                 normalize_stored_pattern: bool = True,
+                 normalize_stored_pattern_affine: bool = True,
+                 normalize_state_pattern: bool = True,
+                 normalize_state_pattern_affine: bool = True,
+                 normalize_pattern_projection: bool = True,
+                 normalize_pattern_projection_affine: bool = True,
+                 normalize_hopfield_space: bool = False,
+                 normalize_hopfield_space_affine: bool = False,
                  stored_pattern_as_static: bool = False,
                  pattern_projection_as_static: bool = False,
                  stored_pattern_size: Optional[int] = None,
@@ -337,6 +411,7 @@ class HopfieldPooling(Module):
                  concat_bias_pattern: bool = False,
                  add_zero_association: bool = False,
                  disable_out_projection: bool = False,
+                 quantity: int = 1,
                  trainable: bool = True
                  ):
         """
@@ -349,14 +424,14 @@ class HopfieldPooling(Module):
         :param scaling: scaling of association heads, often represented as beta (one entry per head)
         :param update_steps_max: maximum count of association update steps (None equals to infinity)
         :param update_steps_eps: minimum difference threshold between two consecutive association update steps
-        :param normalise_stored_pattern: apply normalisation on stored patterns
-        :param normalise_stored_pattern_affine: additionally enable affine normalisation of stored patterns
-        :param normalise_state_pattern: apply normalisation on state patterns
-        :param normalise_state_pattern_affine: additionally enable affine normalisation of state patterns
-        :param normalise_pattern_projection: apply normalisation on the pattern projection
-        :param normalise_pattern_projection_affine: additionally enable affine normalisation of pattern projection
-        :param normalise_hopfield_space: enable normalisation of patterns in the Hopfield space
-        :param normalise_hopfield_space_affine: additionally enable affine normalisation of patterns in Hopfield space
+        :param normalize_stored_pattern: apply normalisation on stored patterns
+        :param normalize_stored_pattern_affine: additionally enable affine normalisation of stored patterns
+        :param normalize_state_pattern: apply normalisation on state patterns
+        :param normalize_state_pattern_affine: additionally enable affine normalisation of state patterns
+        :param normalize_pattern_projection: apply normalisation on the pattern projection
+        :param normalize_pattern_projection_affine: additionally enable affine normalisation of pattern projection
+        :param normalize_hopfield_space: enable normalisation of patterns in the Hopfield space
+        :param normalize_hopfield_space_affine: additionally enable affine normalisation of patterns in Hopfield space
         :param stored_pattern_as_static: interpret specified stored patterns as being static
         :param state_pattern_as_static: interpret specified state patterns as being static
         :param pattern_projection_as_static: interpret specified pattern projections as being static
@@ -369,20 +444,21 @@ class HopfieldPooling(Module):
         :param concat_bias_pattern: bias to be concatenated to stored pattern as well as pattern projection
         :param add_zero_association: add a new batch of zeros to stored pattern as well as pattern projection
         :param disable_out_projection: disable output projection
+        :param quantity: amount of state patterns
         :param trainable: state pattern used for pooling is trainable
         """
         super(HopfieldPooling, self).__init__()
         self.hopfield = Hopfield(
             input_size=input_size, hidden_size=hidden_size, output_size=output_size, num_heads=num_heads,
             scaling=scaling, update_steps_max=update_steps_max, update_steps_eps=update_steps_eps,
-            normalise_stored_pattern=normalise_stored_pattern,
-            normalise_stored_pattern_affine=normalise_stored_pattern_affine,
-            normalise_state_pattern=normalise_state_pattern,
-            normalise_state_pattern_affine=normalise_state_pattern_affine,
-            normalise_pattern_projection=normalise_pattern_projection,
-            normalise_pattern_projection_affine=normalise_pattern_projection_affine,
-            normalise_hopfield_space=normalise_hopfield_space,
-            normalise_hopfield_space_affine=normalise_hopfield_space_affine,
+            normalize_stored_pattern=normalize_stored_pattern,
+            normalize_stored_pattern_affine=normalize_stored_pattern_affine,
+            normalize_state_pattern=normalize_state_pattern,
+            normalize_state_pattern_affine=normalize_state_pattern_affine,
+            normalize_pattern_projection=normalize_pattern_projection,
+            normalize_pattern_projection_affine=normalize_pattern_projection_affine,
+            normalize_hopfield_space=normalize_hopfield_space,
+            normalize_hopfield_space_affine=normalize_hopfield_space_affine,
             stored_pattern_as_static=stored_pattern_as_static, state_pattern_as_static=True,
             pattern_projection_as_static=pattern_projection_as_static, stored_pattern_size=stored_pattern_size,
             pattern_projection_size=pattern_projection_size, batch_first=batch_first,
@@ -390,26 +466,54 @@ class HopfieldPooling(Module):
             concat_bias_pattern=concat_bias_pattern, add_zero_association=add_zero_association,
             disable_out_projection=disable_out_projection)
         self.pooling_weights = StatePattern(
-            size=self.hopfield.hidden_size, batch_first=batch_first, trainable=trainable)
+            size=self.hopfield.hidden_size, quantity=quantity, batch_first=batch_first, trainable=trainable)
 
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: Tensor, stored_pattern_padding_mask: Optional[Tensor] = None,
+                association_mask: Optional[Tensor] = None) -> Tensor:
         """
         Compute Hopfield-based pooling on specified data.
 
         :param input: data to be pooled
+        :param stored_pattern_padding_mask: mask to be applied on stored patterns
+        :param association_mask: mask to be applied on inner association matrix
         :return: Hopfield-pooled input data
         """
-        return self.hopfield.forward(input=self.pooling_weights.forward(input=input)).flatten(start_dim=1)
+        return self.hopfield(
+            input=self.pooling_weights(input=input),
+            stored_pattern_padding_mask=stored_pattern_padding_mask,
+            association_mask=association_mask).flatten(start_dim=1)
 
-    def get_association_matrix(self, input: Tensor) -> Tensor:
+    def get_association_matrix(self, input: Tensor, stored_pattern_padding_mask: Optional[Tensor] = None,
+                               association_mask: Optional[Tensor] = None) -> Tensor:
         """
         Fetch Hopfield association matrix used for pooling gathered by passing through the specified data.
 
         :param input: data to be passed through the Hopfield association
+        :param stored_pattern_padding_mask: mask to be applied on stored patterns
+        :param association_mask: mask to be applied on inner association matrix
         :return: association matrix as computed by the Hopfield core module
         """
         with torch.no_grad():
-            return self.hopfield.get_association_matrix(input=self.pooling_weights.forward(input=input))
+            return self.hopfield.get_association_matrix(
+                input=self.pooling_weights(input=input),
+                stored_pattern_padding_mask=stored_pattern_padding_mask,
+                association_mask=association_mask)
+
+    def get_projected_pattern_matrix(self, input: Tensor, stored_pattern_padding_mask: Optional[Tensor] = None,
+                                     association_mask: Optional[Tensor] = None) -> Tensor:
+        """
+        Fetch Hopfield projected pattern matrix gathered by passing through the specified data.
+
+        :param input: data to be passed through the Hopfield association
+        :param stored_pattern_padding_mask: mask to be applied on stored patterns
+        :param association_mask: mask to be applied on inner association matrix
+        :return: pattern projection matrix as computed by the Hopfield core module
+        """
+        with torch.no_grad():
+            return self.hopfield.get_projected_pattern_matrix(
+                input=self.pooling_weights(input=input),
+                stored_pattern_padding_mask=stored_pattern_padding_mask,
+                association_mask=association_mask)
 
     @property
     def batch_first(self) -> bool:
@@ -450,3 +554,39 @@ class HopfieldPooling(Module):
     @property
     def update_steps_eps(self) -> Optional[Union[float, Tensor]]:
         return self.hopfield.update_steps_eps
+
+    @property
+    def stored_pattern_as_static(self) -> bool:
+        return self.hopfield.stored_pattern_as_static
+
+    @property
+    def state_pattern_as_static(self) -> bool:
+        return self.hopfield.state_pattern_as_static
+
+    @property
+    def pattern_projection_as_static(self) -> bool:
+        return self.hopfield.pattern_projection_as_static
+
+    @property
+    def normalize_stored_pattern(self) -> bool:
+        return self.hopfield.normalize_stored_pattern
+
+    @property
+    def normalize_stored_pattern_affine(self) -> bool:
+        return self.hopfield.normalize_stored_pattern_affine
+
+    @property
+    def normalize_state_pattern(self) -> bool:
+        return self.hopfield.normalize_state_pattern
+
+    @property
+    def normalize_state_pattern_affine(self) -> bool:
+        return self.hopfield.normalize_state_pattern_affine
+
+    @property
+    def normalize_pattern_projection(self) -> bool:
+        return self.hopfield.normalize_pattern_projection
+
+    @property
+    def normalize_pattern_projection_affine(self) -> bool:
+        return self.hopfield.normalize_pattern_projection_affine

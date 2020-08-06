@@ -43,7 +43,8 @@ class HopfieldEncoderLayer(Module):
         self.activation_residual = getattr(torch, activation, None)
         assert self.activation_residual is not None, r'invalid activation function supplied.'
 
-    def forward(self, src: Tensor, src_mask: Optional[Tensor] = None, src_key_padding_mask: Optional[Tensor] = None):
+    def forward(self, src: Tensor, src_mask: Optional[Tensor] = None,
+                src_key_padding_mask: Optional[Tensor] = None) -> Tensor:
         """
         Apply Hopfield encoding on specified data.
 
@@ -52,16 +53,16 @@ class HopfieldEncoderLayer(Module):
         :param src_key_padding_mask: mask to be applied on stored patterns
         :return: Hopfield-encoded input data
         """
-        data_associated = self.hopfield_association.forward(
+        data_associated = self.hopfield_association(
             input=src, stored_pattern_padding_mask=src_key_padding_mask, association_mask=src_mask)
-        src = src + self.dropout_hopfield_association.forward(input=data_associated)
-        src = self.norm_residual.forward(input=src)
+        src = src + self.dropout_hopfield_association(input=data_associated)
+        src = self.norm_residual(input=src)
 
-        result_residual_inner = self.activation_residual(input=self.linear_residual.forward(input=src))
-        data_associated = self.linear_output.forward(input=self.dropout_residual.forward(input=result_residual_inner))
-        src = src + self.dropout_output.forward(input=data_associated)
+        result_residual_inner = self.activation_residual(input=self.linear_residual(input=src))
+        data_associated = self.linear_output(input=self.dropout_residual(input=result_residual_inner))
+        src = src + self.dropout_output(input=data_associated)
 
-        return self.norm_output.forward(input=src)
+        return self.norm_output(input=src)
 
     def get_association_matrix(self, input: Union[Tensor, Tuple[Tensor, Tensor, Tensor]]) -> Tensor:
         """
@@ -123,7 +124,7 @@ class HopfieldDecoderLayer(Module):
 
     def forward(self, tgt: Tensor, memory: Tensor, tgt_mask: Optional[Tensor] = None,
                 memory_mask: Optional[Tensor] = None, tgt_key_padding_mask: Optional[Tensor] = None,
-                memory_key_padding_mask: Optional[Tensor] = None):
+                memory_key_padding_mask: Optional[Tensor] = None) -> Tensor:
         """
         Apply Hopfield decoding on specified data.
 
@@ -135,22 +136,22 @@ class HopfieldDecoderLayer(Module):
         :param memory_key_padding_mask: mask to be applied on state patterns as well as pattern projection
         :return: Hopfield-decoded input
         """
-        data_associated = self.hopfield_association_self.forward(
+        data_associated = self.hopfield_association_self(
             input=tgt, stored_pattern_padding_mask=tgt_key_padding_mask,
             association_mask=tgt_mask)
-        tgt = tgt + self.dropout_hopfield_association_self.forward(input=data_associated)
-        tgt = self.norm_residual_self.forward(input=tgt)
+        tgt = tgt + self.dropout_hopfield_association_self(input=data_associated)
+        tgt = self.norm_residual_self(input=tgt)
 
-        data_associated = self.hopfield_association_cross.forward(
+        data_associated = self.hopfield_association_cross(
             input=(memory, tgt, memory), stored_pattern_padding_mask=memory_key_padding_mask,
             association_mask=memory_mask)
-        tgt = tgt + self.dropout_hopfield_association_cross.forward(input=data_associated)
-        tgt = self.norm_residual_cross.forward(input=tgt)
+        tgt = tgt + self.dropout_hopfield_association_cross(input=data_associated)
+        tgt = self.norm_residual_cross(input=tgt)
 
-        result_residual_inner = self.activation_residual(input=self.linear_residual.forward(input=tgt))
-        data_associated = self.linear_output.forward(input=self.dropout_residual.forward(input=result_residual_inner))
-        tgt = tgt + self.dropout_output.forward(input=data_associated)
-        return self.norm_output.forward(input=tgt)
+        result_residual_inner = self.activation_residual(input=self.linear_residual(input=tgt))
+        data_associated = self.linear_output(input=self.dropout_residual(input=result_residual_inner))
+        tgt = tgt + self.dropout_output(input=data_associated)
+        return self.norm_output(input=tgt)
 
     def get_association_matrix_self(self, input: Union[Tensor, Tuple[Tensor, Tensor, Tensor]]) -> Tensor:
         """

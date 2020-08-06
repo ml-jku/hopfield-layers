@@ -2,7 +2,7 @@ import torch
 
 from math import ceil
 from torch.utils.data import Dataset
-from typing import Dict, Tuple
+from typing import Dict, Optional, Sequence, Tuple, Union
 
 
 class BitPatternSet(Dataset):
@@ -223,8 +223,8 @@ class LatchSequenceSet(Dataset):
         torch.random.manual_seed(seed=self.__seed)
 
         # Generate data and target tensors.
-        generated_data = torch.randint(low=2, high=self.__num_characters,
-                                       size=(self.__num_samples, self.__num_instances))
+        generated_data = torch.randint(
+            low=2, high=self.__num_characters, size=(self.__num_samples, self.__num_instances))
         generated_signal = torch.randint(low=0, high=2, size=(self.__num_samples,))
         generated_data[:, 0] = generated_signal
         generated_data = torch.nn.functional.one_hot(input=generated_data, num_classes=self.__num_characters)

@@ -7,6 +7,11 @@ from typing import Optional
 
 from .functional import hopfield_core_forward
 
+try:
+    from torch.nn.modules.linear import _LinearWithBias
+except ImportError:
+    _LinearWithBias = None
+
 
 class HopfieldCore(Module):
     r"""Allows the model to jointly attend to information
@@ -41,7 +46,6 @@ class HopfieldCore(Module):
         'bias_k': torch._jit_internal.Optional[torch.Tensor],
         'bias_v': torch._jit_internal.Optional[torch.Tensor],
     }
-    __constants__ = ['q_proj_weight', 'k_proj_weight', 'v_proj_weight', 'in_proj_weight']
 
     def __init__(self,
                  embed_dim,                      # type: int
@@ -59,8 +63,8 @@ class HopfieldCore(Module):
                  key_as_static=False,            # type: bool
                  query_as_static=False,          # type: bool
                  value_as_static=False,          # type: bool
-                 normalise_pattern=False,        # type: bool
-                 normalise_pattern_affine=False  # type: bool
+                 normalize_pattern=False,        # type: bool
+                 normalize_pattern_affine=False  # type: bool
                  ):
         super(HopfieldCore, self).__init__()
         self.embed_dim = embed_dim
@@ -87,14 +91,14 @@ class HopfieldCore(Module):
         self.out_dim = embed_dim if out_dim is None else out_dim
         assert disable_out_projection or (self.out_dim > 0), "output projection dimension has to be positive."
 
-        if normalise_pattern_affine:
-            assert normalise_pattern, "affine pattern normalisation without pattern normalisation has no effect."
+        if normalize_pattern_affine:
+            assert normalize_pattern, "affine pattern normalisation without pattern normalisation has no effect."
             self.p_norm_weight = Parameter(torch.Tensor(head_dim))
             self.p_norm_bias = Parameter(torch.Tensor(head_dim))
         else:
             self.register_parameter('p_norm_weight', None)
             self.register_parameter('p_norm_bias', None)
-        self.__normalise_pattern = normalise_pattern
+        self.__normalize_pattern = normalize_pattern
 
         if self._qkv_same_embed_dim is False:
             if query_as_static:
@@ -126,7 +130,10 @@ class HopfieldCore(Module):
         if disable_out_projection:
             self.register_parameter('out_proj', None)
         else:
-            self.out_proj = Linear(self.virtual_hopfield_dim, self.out_dim, bias=bias)
+            if bias and _LinearWithBias is not None:
+                self.out_proj = _LinearWithBias(self.virtual_hopfield_dim, self.out_dim)
+            else:
+                self.out_proj = Linear(self.virtual_hopfield_dim, self.out_dim, bias=bias)
 
         self.bias_k, self.bias_v = None, None
         if add_bias_kv:
@@ -146,39 +153,40 @@ class HopfieldCore(Module):
             nn.init.zeros_(self.p_norm_bias)
 
         if self._qkv_same_embed_dim and (self.in_proj_weight is not None):
-            nn.init.xavier_uniform_(self.in_proj_weight)
+            nn.init.normal_(self.in_proj_weight, mean=0.0, std=0.02)
         else:
             if self.q_proj_weight is not None:
-                nn.init.xavier_uniform_(self.q_proj_weight)
+                nn.init.normal_(self.q_proj_weight, mean=0.0, std=0.02)
             if self.k_proj_weight is not None:
-                nn.init.xavier_uniform_(self.k_proj_weight)
+                nn.init.normal_(self.k_proj_weight, mean=0.0, std=0.02)
             if self.v_proj_weight is not None:
-                nn.init.xavier_uniform_(self.v_proj_weight)
+                nn.init.normal_(self.v_proj_weight, mean=0.0, std=0.02)
 
         if self.in_proj_bias is not None:
-            nn.init.constant_(self.in_proj_bias, 0.)
+            nn.init.constant_(self.in_proj_bias, 0.0)
             if not self.__disable_out_projection:
-                nn.init.constant_(self.out_proj.bias, 0.)
+                nn.init.constant_(self.out_proj.bias, 0.0)
         if self.bias_k is not None:
-            nn.init.xavier_normal_(self.bias_k)
+            nn.init.normal_(self.bias_k, mean=0.0, std=0.02)
         if self.bias_v is not None:
-            nn.init.xavier_normal_(self.bias_v)
+            nn.init.normal_(self.bias_v, mean=0.0, std=0.02)
 
     def __setstate__(self, state):
         super(HopfieldCore, self).__setstate__(state)
 
     def forward(self,
-                query,                         # type: Tensor
-                key,                           # type: Tensor
-                value,                         # type: Tensor
-                key_padding_mask=None,         # type: Optional[Tensor]
-                need_weights=True,             # type: bool
-                attn_mask=None,                # type: Optional[Tensor]
+                query,                            # type: Tensor
+                key,                              # type: Tensor
+                value,                            # type: Tensor
+                key_padding_mask=None,            # type: Optional[Tensor]
+                need_weights=True,                # type: bool
+                attn_mask=None,                   # type: Optional[Tensor]
 
-                scaling=None,                  # type: Optional[Tensor]
-                update_steps_max=0,            # type: Optional[int]
-                update_steps_eps=1e-4,         # type: float
-                return_raw_associations=False  # type: bool
+                scaling=None,                     # type: Optional[Tensor]
+                update_steps_max=0,               # type: Optional[int]
+                update_steps_eps=1e-4,            # type: float
+                return_raw_associations=False,    # type: bool
+                return_pattern_projections=False  # type: bool
                 ):
         # type: (...) -> Tuple[Tensor, Optional[Tensor], Optional[Tensor]]
         r"""
@@ -187,17 +195,19 @@ class HopfieldCore(Module):
                 See "Attention Is All You Need" for more details.
                 See "Hopfield Networks is All You Need" for more details in the setting of Hopfield networks.
             key_padding_mask: if provided, specified padding elements in the key will
-                be ignored by the attention. This is an binary mask. When the value is True,
-                the corresponding value on the attention layer will be filled with -inf.
+                be ignored by the attention. When given a binary mask and a value is True,
+                the corresponding value on the attention layer will be ignored. When given
+                a byte mask and a value is non-zero, the corresponding value on the attention
+                layer will be ignored.
             need_weights: output attn_output_weights.
-            attn_mask: 2D or 3D mask that prevents attention to certain positions. This is an additive mask
-                (i.e. the values will be added to the attention layer). A 2D mask will be broadcasted for all
+            attn_mask: 2D or 3D mask that prevents attention to certain positions. A 2D mask will be broadcasted for all
                 the batches while a 3D mask allows to specify a different mask for the entries of each batch.
 
             scaling: scaling of association heads, often represented as beta (one entry per head).
             update_steps_max: maximum count of association update steps (None equals to infinity).
             update_steps_eps: minimum difference threshold between two consecutive association update steps.
             return_raw_associations: return raw association (softmax) values, unmodified.
+            return_pattern_projections: return pattern projection values, unmodified.
 
         Shape:
             - Inputs:
@@ -207,10 +217,17 @@ class HopfieldCore(Module):
               the embedding dimension.
             - value: :math:`(S, N, E)` where S is the source sequence length, N is the batch size, E is
               the embedding dimension.
-            - key_padding_mask: :math:`(N, S)`, ByteTensor, where N is the batch size, S is the source sequence length.
+            - key_padding_mask: :math:`(N, S)` where N is the batch size, S is the source sequence length.
+              If a ByteTensor is provided, the non-zero positions will be ignored while the position
+              with the zero positions will be unchanged. If a BoolTensor is provided, the positions with the
+              value of ``True`` will be ignored while the position with the value of ``False`` will be unchanged.
             - attn_mask: 2D mask :math:`(L, S)` where L is the target sequence length, S is the source sequence length.
               3D mask :math:`(N*num_heads, L, S)` where N is the batch size, L is the target sequence length,
-              S is the source sequence length.
+              S is the source sequence length. attn_mask ensure that position i is allowed to attend the unmasked
+              positions. If a ByteTensor is provided, the non-zero positions are not allowed to attend
+              while the zero positions will be unchanged. If a BoolTensor is provided, positions with ``True``
+              is not allowed to attend while ``False`` values will be unchanged. If a FloatTensor
+              is provided, it will be added to the attention weight.
 
             - scaling: :math:`(num_heads,)`, where num_heads is the amount of heads.
 
@@ -243,7 +260,7 @@ class HopfieldCore(Module):
 
         if not self._qkv_same_embed_dim:
             return hopfield_core_forward(
-                query, key, value, self.embed_dim, self.num_heads,
+                query, key, value, self.head_dim if self.query_as_static else self.embed_dim, self.num_heads,
                 self.in_proj_weight, self.in_proj_bias,
                 self.bias_k, self.bias_v, self.add_zero_attn,
                 self.dropout, out_weights, out_bias,
@@ -254,14 +271,14 @@ class HopfieldCore(Module):
                 v_proj_weight=self.v_proj_weight,
 
                 key_as_static=self.key_as_static, query_as_static=self.query_as_static,
-                value_as_static=self.value_as_static, normalise_pattern=self.__normalise_pattern,
+                value_as_static=self.value_as_static, normalize_pattern=self.__normalize_pattern,
                 p_norm_weight=self.p_norm_weight, p_norm_bias=self.p_norm_bias,
                 head_dim=self.head_dim, scaling=scaling,
                 update_steps_max=update_steps_max, update_steps_eps=update_steps_eps,
-                return_raw_associations=return_raw_associations)
+                return_raw_associations=return_raw_associations, return_projected_patterns=return_pattern_projections)
         else:
             return hopfield_core_forward(
-                query, key, value, self.embed_dim, self.num_heads,
+                query, key, value, self.head_dim if self.query_as_static else self.embed_dim, self.num_heads,
                 self.in_proj_weight, self.in_proj_bias,
                 self.bias_k, self.bias_v, self.add_zero_attn,
                 self.dropout, out_weights, out_bias,
@@ -270,8 +287,8 @@ class HopfieldCore(Module):
                 attn_mask=attn_mask,
 
                 key_as_static=self.key_as_static, query_as_static=self.query_as_static,
-                value_as_static=self.value_as_static, normalise_pattern=self.__normalise_pattern,
+                value_as_static=self.value_as_static, normalize_pattern=self.__normalize_pattern,
                 p_norm_weight=self.p_norm_weight, p_norm_bias=self.p_norm_bias,
                 head_dim=self.head_dim, scaling=scaling,
                 update_steps_max=update_steps_max, update_steps_eps=update_steps_eps,
-                return_raw_associations=return_raw_associations)
+                return_raw_associations=return_raw_associations, return_projected_patterns=return_pattern_projections)

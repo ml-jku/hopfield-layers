@@ -32,14 +32,15 @@ def hopfield_core_forward(query,                           # type: Tensor
                           key_as_static=False,             # type: bool
                           query_as_static=False,           # type: bool
                           value_as_static=False,           # type: bool
-                          normalise_pattern=False,         # type: bool
+                          normalize_pattern=False,         # type: bool
                           p_norm_weight=None,              # type: Optional[Tensor]
                           p_norm_bias=None,                # type: Optional[Tensor]
                           head_dim=None,                   # type: Optional[int]
                           scaling=None,                    # type: Optional[Union[float, Tensor]]
                           update_steps_max=0,              # type: Optional[Union[int, Tensor]]
                           update_steps_eps=1e-4,           # type: Union[float, Tensor]
-                          return_raw_associations=False    # type: bool
+                          return_raw_associations=False,   # type: bool
+                          return_projected_patterns=False  # type: bool
                           ):
     # type: (...) -> Tuple[Tensor, Optional[Tensor]]
     r"""
@@ -60,8 +61,7 @@ def hopfield_core_forward(query,                           # type: Tensor
             be ignored by the attention. This is an binary mask. When the value is True,
             the corresponding value on the attention layer will be filled with -inf.
         need_weights: output attn_output_weights.
-        attn_mask: 2D or 3D mask that prevents attention to certain positions. This is an additive mask
-            (i.e. the values will be added to the attention layer). A 2D mask will be broadcasted for all
+        attn_mask: 2D or 3D mask that prevents attention to certain positions. A 2D mask will be broadcasted for all
             the batches while a 3D mask allows to specify a different mask for the entries of each batch.
         use_separate_proj_weight: the function accept the proj. weights for query, key,
             and value in different forms. If false, in_proj_weight will be used, which is
@@ -72,13 +72,14 @@ def hopfield_core_forward(query,                           # type: Tensor
         key_as_static: interpret specified key as being static.
         query_as_static: interpret specified key as being static.
         value_as_static: interpret specified key as being static.
-        normalise_pattern: enable normalisation of patterns.
+        normalize_pattern: enable normalisation of patterns.
         p_norm_weight, p_norm_bias: pattern normalisation weight and bias.
         head_dim: dimensionality of each head.
         scaling: scaling of association heads, often represented as beta (one entry per head).
         update_steps_max: maximum count of association update steps (None equals to infinity).
         update_steps_eps: minimum difference threshold between two consecutive association update steps.
         return_raw_associations: return raw association (softmax) values, unmodified.
+        return_projected_patterns: return pattern projection values, unmodified.
 
     Shape:
         Inputs:
@@ -88,10 +89,17 @@ def hopfield_core_forward(query,                           # type: Tensor
           the embedding dimension.
         - value: :math:`(S, N, E)` where S is the source sequence length, N is the batch size, E is
           the embedding dimension.
-        - key_padding_mask: :math:`(N, S)`, ByteTensor, where N is the batch size, S is the source sequence length.
+        - key_padding_mask: :math:`(N, S)` where N is the batch size, S is the source sequence length.
+          If a ByteTensor is provided, the non-zero positions will be ignored while the zero positions
+          will be unchanged. If a BoolTensor is provided, the positions with the
+          value of ``True`` will be ignored while the position with the value of ``False`` will be unchanged.
         - attn_mask: 2D mask :math:`(L, S)` where L is the target sequence length, S is the source sequence length.
           3D mask :math:`(N*num_heads, L, S)` where N is the batch size, L is the target sequence length,
-          S is the source sequence length.
+          S is the source sequence length. attn_mask ensures that position i is allowed to attend the unmasked
+          positions. If a ByteTensor is provided, the non-zero positions are not allowed to attend
+          while the zero positions will be unchanged. If a BoolTensor is provided, positions with ``True``
+          are not allowed to attend while ``False`` values will be unchanged. If a FloatTensor
+          is provided, it will be added to the attention weight.
         - static_k: :math:`(N*num_heads, S, head_dim)`, where S is the source sequence length, N is the batch size.
         - static_v: :math:`(N*num_heads, S, head_dim)`, where S is the source sequence length, N is the batch size.
 
@@ -119,13 +127,14 @@ def hopfield_core_forward(query,                           # type: Tensor
                 q_proj_weight=q_proj_weight, k_proj_weight=k_proj_weight,
                 v_proj_weight=v_proj_weight, static_k=static_k, static_v=static_v,
                 key_as_static=key_as_static, query_as_static=query_as_static,
-                value_as_static=value_as_static, normalise_pattern=normalise_pattern,
+                value_as_static=value_as_static, normalize_pattern=normalize_pattern,
                 p_norm_weight=p_norm_weight, p_norm_bias=p_norm_bias,
                 head_dim=head_dim, scaling=scaling, update_steps_max=update_steps_max,
                 update_steps_eps=update_steps_eps, return_raw_associations=return_raw_associations)
-    tgt_len, (bsz, embed_dim) = query.shape[0], value.shape[1:]
+    tgt_len, bsz, embed_dim = query.shape[0], value.shape[1], query.shape[2]
     assert embed_dim == embed_dim_to_check
-    assert key.size() == value.size()
+    # allow MHA to have different sizes for the feature dimension
+    assert key.size(0) == value.size(0) and key.size(1) == value.size(1)
 
     assert (scaling is None) or (type(scaling) in (float, torch.Tensor))
     if type(scaling) == torch.Tensor:
@@ -165,7 +174,7 @@ def hopfield_core_forward(query,                           # type: Tensor
 
     while update_active_heads.any():
 
-        # They query is already projected into the "Hopfield" space at "update_step" equals 0.
+        # The query is already projected into the "Hopfield" space at "update_step" equals 0.
         # No more projection necessary if "update_step" greater than 0.
         if update_step == 0:
             if not use_separate_proj_weight:
@@ -239,6 +248,7 @@ def hopfield_core_forward(query,                           # type: Tensor
                             _b = _b[_start:_end]
                         v = nn.functional.linear(value, _w, _b)
             else:
+                _start, _end = 0, hopfield_dim
                 if query_as_static:
                     q = query.repeat(1, num_heads, 1)
                 else:
@@ -246,7 +256,9 @@ def hopfield_core_forward(query,                           # type: Tensor
                     len1, len2 = q_proj_weight_non_opt.size()
                     assert len1 == hopfield_dim and len2 == query.size(-1)
                     if in_proj_bias is not None:
-                        q = nn.functional.linear(query, q_proj_weight_non_opt, in_proj_bias[0:hopfield_dim])
+                        q = nn.functional.linear(query, q_proj_weight_non_opt, in_proj_bias[_start:_end])
+                        _start += hopfield_dim
+                        _end += hopfield_dim
                     else:
                         q = nn.functional.linear(query, q_proj_weight_non_opt, in_proj_bias)
 
@@ -257,7 +269,9 @@ def hopfield_core_forward(query,                           # type: Tensor
                     len1, len2 = k_proj_weight_non_opt.size()
                     assert len1 == hopfield_dim and len2 == key.size(-1)
                     if in_proj_bias is not None:
-                        k = nn.functional.linear(key, k_proj_weight_non_opt, in_proj_bias[embed_dim:(hopfield_dim * 2)])
+                        k = nn.functional.linear(key, k_proj_weight_non_opt, in_proj_bias[_start:_end])
+                        _start += hopfield_dim
+                        _end += hopfield_dim
                     else:
                         k = nn.functional.linear(key, k_proj_weight_non_opt, in_proj_bias)
 
@@ -268,11 +282,20 @@ def hopfield_core_forward(query,                           # type: Tensor
                     len1, len2 = v_proj_weight_non_opt.size()
                     assert len1 == hopfield_dim and len2 == value.size(-1)
                     if in_proj_bias is not None:
-                        v = nn.functional.linear(value, v_proj_weight_non_opt, in_proj_bias[(hopfield_dim * 2):])
+                        v = nn.functional.linear(value, v_proj_weight_non_opt, in_proj_bias[_start:_end])
                     else:
                         v = nn.functional.linear(value, v_proj_weight_non_opt, in_proj_bias)
 
             if attn_mask is not None:
+                assert attn_mask.dtype == torch.float32 or attn_mask.dtype == torch.float64 or \
+                       attn_mask.dtype == torch.float16 or attn_mask.dtype == torch.uint8 or \
+                       attn_mask.dtype == torch.bool, \
+                       'Only float, byte, and bool types are supported for attn_mask, not {}'.format(attn_mask.dtype)
+                if attn_mask.dtype == torch.uint8:
+                    warnings.warn(
+                        "Byte tensor for attn_mask in nn.HopfieldCore is deprecated. Use bool tensor instead.")
+                    attn_mask = attn_mask.to(torch.bool)
+
                 if attn_mask.dim() == 2:
                     attn_mask = attn_mask.unsqueeze(0)
                     if list(attn_mask.size()) != [1, query.size(0), key.size(0)]:
@@ -284,8 +307,8 @@ def hopfield_core_forward(query,                           # type: Tensor
                     raise RuntimeError("attn_mask's dimension {} is not supported".format(attn_mask.dim()))
                 # attn_mask's dim is 3 now.
 
-            # Optionally normalise patterns.
-            if normalise_pattern:
+            # Optionally normalize patterns.
+            if normalize_pattern:
                 q = torch.nn.functional.layer_norm(
                     input=q.reshape(shape=(-1, head_dim)), normalized_shape=(head_dim,),
                     weight=p_norm_weight, bias=p_norm_bias).reshape(shape=q.shape)
@@ -302,9 +325,15 @@ def hopfield_core_forward(query,                           # type: Tensor
         if type(scaling) == float:
             q *= scaling
         elif type(scaling) == torch.Tensor:
-            q *= scaling.repeat(repeats=(head_dim,))
+            q *= scaling.unsqueeze(axis=1).repeat(repeats=(bsz, head_dim))
 
         if update_step == 0:
+            # convert ByteTensor key_padding_mask to bool
+            if key_padding_mask is not None and key_padding_mask.dtype == torch.uint8:
+                warnings.warn(
+                    "Byte tensor for key_padding_mask in nn.HopfieldCore is deprecated. Use bool tensor instead.")
+                key_padding_mask = key_padding_mask.to(torch.bool)
+
             if bias_k is not None and bias_v is not None:
                 if static_k is None and static_v is None and key_as_static is None and value_as_static is None:
                     k = torch.cat([k, bias_k.repeat(1, bsz, 1)])
@@ -357,7 +386,10 @@ def hopfield_core_forward(query,                           # type: Tensor
         assert list(attn_output_weights.size()) == [bsz * num_heads, tgt_len, src_len]
 
         if attn_mask is not None:
-            attn_output_weights += attn_mask
+            if attn_mask.dtype == torch.bool:
+                attn_output_weights.masked_fill_(attn_mask, float('-inf'))
+            else:
+                attn_output_weights += attn_mask
 
         if key_padding_mask is not None:
             attn_output_weights = attn_output_weights.view(bsz, num_heads, tgt_len, src_len)
@@ -396,9 +428,10 @@ def hopfield_core_forward(query,                           # type: Tensor
         attn_output = nn.functional.linear(attn_output, out_proj_weight, out_proj_bias)
 
     xi = xi.view(bsz, num_heads, tgt_len, src_len) if return_raw_associations else None
+    v = v.view(bsz, num_heads, src_len, head_dim) if return_projected_patterns else None
     if need_weights:
         # average attention weights over heads
         attn_output_weights = attn_output_weights.view(bsz, num_heads, tgt_len, src_len)
-        return attn_output, attn_output_weights.sum(dim=1) / num_heads, xi
+        return attn_output, attn_output_weights.sum(dim=1) / num_heads, xi, v
     else:
-        return attn_output, None, xi
+        return attn_output, None, xi, v
