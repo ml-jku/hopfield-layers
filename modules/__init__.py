@@ -133,10 +133,8 @@ class Hopfield(Module):
         :param args: tensors to eventually transpose (dependent on the state of "batch_first")
         :return: eventually transposed tensors
         """
-        if self.__batch_first:
-            transposed_result = tuple(_.transpose(0, 1) for _ in args)
-            return transposed_result[0] if len(transposed_result) == 1 else transposed_result
-        return args
+        transposed_result = tuple(_.transpose(0, 1) for _ in args) if self.__batch_first else args
+        return transposed_result[0] if len(transposed_result) == 1 else transposed_result
 
     def _associate(self, data: Union[Tensor, Tuple[Tensor, Tensor, Tensor]],
                    return_raw_associations: bool = False, return_projected_patterns: bool = False,
