@@ -56,6 +56,7 @@ The software was developed and tested on the following 64-bit operating systems:
 
 - CentOS Linux release 8.1.1911 (Core)
 - MacOS 10.15.5 (Catalina)
+- MacOS 11 (Big Sur) (20A5343i)
 
 As the development environment, [Python](https://www.python.org) 3.8.3 in combination with [pytorch](https://pytorch.org) 1.6.0 was used (a version of at least 1.5.0 should be sufficient). More details on how to install PyTorch are available on the [official project page](https://pytorch.org).
 
