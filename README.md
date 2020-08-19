@@ -55,9 +55,9 @@ The full paper is available at [https://arxiv.org/abs/2008.02217](https://arxiv.
 The software was developed and tested on the following 64-bit operating systems:
 
 - CentOS Linux release 8.1.1911 (Core)
-- MacOS 10.15.5 (Catalina)
+- macOS 10.15.5 (Catalina)
 
-As the development environment, [Python](https://www.python.org) 3.8.3 in combination with [pytorch](https://pytorch.org) 1.6.0 was used (a version of at least 1.5.0 should be sufficient). More details on how to install PyTorch are available on the [official project page](https://pytorch.org).
+As the development environment, [Python](https://www.python.org) 3.8.3 in combination with [PyTorch](https://pytorch.org) 1.6.0 was used (a version of at least 1.5.0 should be sufficient). More details on how to install PyTorch are available on the [official project page](https://pytorch.org).
 
 ## Usage
 
@@ -87,7 +87,7 @@ Generally, the Hopfield layer is designed to be used to implement or to substitu
 
 - <b>Attention layers:</b>  Our Hopfield layer can act as an attention layer, where state (query) and stored (key) patterns are different, and need to be associated.
 
-The folder [examples](examples/) contains multiple demonstrations on how to use the <code>Hopfield</code> as well as the <code>HopfieldPooling</code> modules. To successfully run the contained [JuPyter Notebooks](https://jupyter.org), additional third-party modules like [pandas](https://pandas.pydata.org) and [seaborn](https://seaborn.pydata.org) are required.
+The folder [examples](examples/) contains multiple demonstrations on how to use the <code>Hopfield</code> as well as the <code>HopfieldPooling</code> modules. To successfully run the contained [Jupyter notebooks](https://jupyter.org), additional third-party modules like [pandas](https://pandas.pydata.org) and [seaborn](https://seaborn.pydata.org) are required.
 
 - [Bit Pattern Set](examples/bit_pattern_demo.ipynb): The dataset of this demonstration falls into the category of <i>binary classification</i> tasks in the domain of <i>Multiple Instance Learning (MIL)</i> problems. Each bag comprises a collection of bit pattern instances, wheres each instance is a sequence of <b>0s</b> and <b>1s</b>. The positive class has specific bit patterns injected, which are absent in the negative one. This demonstration shows, that <code>Hopfield</code> and <code>HopfieldPooling</code> are capable of learning and filtering each bag with respect to the class-defining bit patterns.
 
@@ -95,7 +95,7 @@ The folder [examples](examples/) contains multiple demonstrations on how to use 
 
 ## Disclaimer
 
-Some implementations of this repository are based on existing ones of the official [PyTorch Repository v1.6.0](https://github.com/pytorch/pytorch/tree/v1.6.0) and accordingly extended and modified. In the following, the involved parts are listed:
+Some implementations of this repository are based on existing ones of the official [PyTorch repository v1.6.0](https://github.com/pytorch/pytorch/tree/v1.6.0) and accordingly extended and modified. In the following, the involved parts are listed:
 
 - The implementation of [HopfieldCore](modules/activation.py#L11) is based on the implementation of [MultiheadAttention](https://github.com/pytorch/pytorch/blob/b31f58de6fa8bbda5353b3c77d9be4914399724d/torch/nn/modules/activation.py#L771).
 - The implementation of [hopfield_core_forward](modules/functional.py#L8) is based on the implementation of [multi_head_attention_forward](https://github.com/pytorch/pytorch/blob/b31f58de6fa8bbda5353b3c77d9be4914399724d/torch/nn/functional.py#L3854).
