@@ -32,6 +32,7 @@ def hopfield_core_forward(query,                           # type: Tensor
                           key_as_static=False,             # type: bool
                           query_as_static=False,           # type: bool
                           value_as_static=False,           # type: bool
+                          value_as_connected=False,        # type: bool
                           normalize_pattern=False,         # type: bool
                           p_norm_weight=None,              # type: Optional[Tensor]
                           p_norm_bias=None,                # type: Optional[Tensor]
@@ -72,8 +73,9 @@ def hopfield_core_forward(query,                           # type: Tensor
         key_as_static: interpret specified key as being static.
         query_as_static: interpret specified key as being static.
         value_as_static: interpret specified key as being static.
-        normalize_pattern: enable normalisation of patterns.
-        p_norm_weight, p_norm_bias: pattern normalisation weight and bias.
+        value_as_connected: connect value projection with key projection.
+        normalize_pattern: enable normalization of patterns.
+        p_norm_weight, p_norm_bias: pattern normalization weight and bias.
         head_dim: dimensionality of each head.
         scaling: scaling of association heads, often represented as beta (one entry per head).
         update_steps_max: maximum count of association update steps (None equals to infinity).
@@ -127,8 +129,8 @@ def hopfield_core_forward(query,                           # type: Tensor
                 q_proj_weight=q_proj_weight, k_proj_weight=k_proj_weight,
                 v_proj_weight=v_proj_weight, static_k=static_k, static_v=static_v,
                 key_as_static=key_as_static, query_as_static=query_as_static,
-                value_as_static=value_as_static, normalize_pattern=normalize_pattern,
-                p_norm_weight=p_norm_weight, p_norm_bias=p_norm_bias,
+                value_as_static=value_as_static, value_as_connected=value_as_connected,
+                normalize_pattern=normalize_pattern, p_norm_weight=p_norm_weight, p_norm_bias=p_norm_bias,
                 head_dim=head_dim, scaling=scaling, update_steps_max=update_steps_max,
                 update_steps_eps=update_steps_eps, return_raw_associations=return_raw_associations)
     tgt_len, bsz, embed_dim = query.shape[0], value.shape[1], query.shape[2]
@@ -262,29 +264,31 @@ def hopfield_core_forward(query,                           # type: Tensor
                     else:
                         q = nn.functional.linear(query, q_proj_weight_non_opt, in_proj_bias)
 
+                v = value
                 if key_as_static:
                     k = key.repeat(1, num_heads, 1)
                 else:
                     k_proj_weight_non_opt = torch.jit._unwrap_optional(k_proj_weight)
                     len1, len2 = k_proj_weight_non_opt.size()
                     assert len1 == hopfield_dim and len2 == key.size(-1)
-                    if in_proj_bias is not None:
-                        k = nn.functional.linear(key, k_proj_weight_non_opt, in_proj_bias[_start:_end])
-                        _start += hopfield_dim
-                        _end += hopfield_dim
-                    else:
-                        k = nn.functional.linear(key, k_proj_weight_non_opt, in_proj_bias)
+
+                    _bias = None if in_proj_bias is None else in_proj_bias[_start:_end]
+                    k = nn.functional.linear(key, k_proj_weight_non_opt, _bias)
+                    if value_as_connected:
+                        v = nn.functional.linear(v, k_proj_weight_non_opt, _bias)
+                    _start += hopfield_dim
+                    _end += hopfield_dim
 
                 if value_as_static:
-                    v = value.repeat(1, num_heads, 1)
+                    v = v.repeat(1, num_heads, 1)
                 else:
                     v_proj_weight_non_opt = torch.jit._unwrap_optional(v_proj_weight)
                     len1, len2 = v_proj_weight_non_opt.size()
-                    assert len1 == hopfield_dim and len2 == value.size(-1)
+                    assert len1 == hopfield_dim and len2 == v.size(-1)
                     if in_proj_bias is not None:
-                        v = nn.functional.linear(value, v_proj_weight_non_opt, in_proj_bias[_start:_end])
+                        v = nn.functional.linear(v, v_proj_weight_non_opt, in_proj_bias[_start:_end])
                     else:
-                        v = nn.functional.linear(value, v_proj_weight_non_opt, in_proj_bias)
+                        v = nn.functional.linear(v, v_proj_weight_non_opt, in_proj_bias)
 
             if attn_mask is not None:
                 assert attn_mask.dtype == torch.float32 or attn_mask.dtype == torch.float64 or \

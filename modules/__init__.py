@@ -34,6 +34,7 @@ class Hopfield(Module):
                  stored_pattern_as_static: bool = False,
                  state_pattern_as_static: bool = False,
                  pattern_projection_as_static: bool = False,
+                 pattern_projection_as_connected: bool = False,
                  stored_pattern_size: Optional[int] = None,
                  pattern_projection_size: Optional[int] = None,
 
@@ -55,17 +56,18 @@ class Hopfield(Module):
         :param scaling: scaling of association heads, often represented as beta (one entry per head)
         :param update_steps_max: maximum count of association update steps (None equals to infinity)
         :param update_steps_eps: minimum difference threshold between two consecutive association update steps
-        :param normalize_stored_pattern: apply normalisation on stored patterns
-        :param normalize_stored_pattern_affine: additionally enable affine normalisation of stored patterns
-        :param normalize_state_pattern: apply normalisation on state patterns
-        :param normalize_state_pattern_affine: additionally enable affine normalisation of state patterns
-        :param normalize_pattern_projection: apply normalisation on the pattern projection
-        :param normalize_pattern_projection_affine: additionally enable affine normalisation of pattern projection
-        :param normalize_hopfield_space: enable normalisation of patterns in the Hopfield space
-        :param normalize_hopfield_space_affine: additionally enable affine normalisation of patterns in Hopfield space
+        :param normalize_stored_pattern: apply normalization on stored patterns
+        :param normalize_stored_pattern_affine: additionally enable affine normalization of stored patterns
+        :param normalize_state_pattern: apply normalization on state patterns
+        :param normalize_state_pattern_affine: additionally enable affine normalization of state patterns
+        :param normalize_pattern_projection: apply normalization on the pattern projection
+        :param normalize_pattern_projection_affine: additionally enable affine normalization of pattern projection
+        :param normalize_hopfield_space: enable normalization of patterns in the Hopfield space
+        :param normalize_hopfield_space_affine: additionally enable affine normalization of patterns in Hopfield space
         :param stored_pattern_as_static: interpret specified stored patterns as being static
         :param state_pattern_as_static: interpret specified state patterns as being static
         :param pattern_projection_as_static: interpret specified pattern projections as being static
+        :param pattern_projection_as_connected: connect pattern projection with stored pattern
         :param stored_pattern_size: depth of input (stored pattern)
         :param pattern_projection_size: depth of input (pattern projection)
         :param batch_first: flag for specifying if the first dimension of data fed to "forward" reflects the batch size
@@ -87,33 +89,34 @@ class Hopfield(Module):
             vdim=pattern_projection_size, head_dim=hidden_size, out_dim=output_size,
             disable_out_projection=disable_out_projection, key_as_static=stored_pattern_as_static,
             query_as_static=state_pattern_as_static, value_as_static=pattern_projection_as_static,
-            normalize_pattern=normalize_hopfield_space, normalize_pattern_affine=normalize_hopfield_space_affine)
+            value_as_connected=pattern_projection_as_connected, normalize_pattern=normalize_hopfield_space,
+            normalize_pattern_affine=normalize_hopfield_space_affine)
         self.association_activation = None
         if association_activation is not None:
             self.association_activation = getattr(torch, association_activation, None)
 
-        # Initialise stored pattern normalisation.
+        # Initialise stored pattern normalization.
         self.norm_stored_pattern = None
         if normalize_stored_pattern_affine:
-            assert normalize_stored_pattern, "affine normalisation without normalisation has no effect."
+            assert normalize_stored_pattern, "affine normalization without normalization has no effect."
         if normalize_stored_pattern:
             self.norm_stored_pattern = nn.LayerNorm(
                 normalized_shape=self.hidden_size if stored_pattern_as_static else self.association_core.kdim,
                 elementwise_affine=normalize_stored_pattern_affine)
 
-        # Initialise state pattern normalisation.
+        # Initialise state pattern normalization.
         self.norm_state_pattern = None
         if normalize_state_pattern_affine:
-            assert normalize_state_pattern, "affine normalisation without normalisation has no effect."
+            assert normalize_state_pattern, "affine normalization without normalization has no effect."
         if normalize_state_pattern:
             self.norm_state_pattern = nn.LayerNorm(
                 normalized_shape=self.hidden_size if state_pattern_as_static else self.association_core.embed_dim,
                 elementwise_affine=normalize_state_pattern_affine)
 
-        # Initialise pattern projection normalisation.
+        # Initialise pattern projection normalization.
         self.norm_pattern_projection = None
         if normalize_pattern_projection_affine:
-            assert normalize_pattern_projection, "affine normalisation without normalisation has no effect."
+            assert normalize_pattern_projection, "affine normalization without normalization has no effect."
         if normalize_pattern_projection:
             self.norm_pattern_projection = nn.LayerNorm(
                 normalized_shape=self.hidden_size if pattern_projection_as_static else self.association_core.vdim,
@@ -162,17 +165,17 @@ class Hopfield(Module):
         stored_pattern, state_pattern, pattern_projection = self._maybe_transpose(
             stored_pattern, state_pattern, pattern_projection)
 
-        # Optionally apply stored pattern normalisation.
+        # Optionally apply stored pattern normalization.
         if self.norm_stored_pattern is not None:
             stored_pattern = self.norm_stored_pattern(input=stored_pattern.reshape(
                 shape=(-1, stored_pattern.shape[2]))).reshape(shape=stored_pattern.shape)
 
-        # Optionally apply state pattern normalisation.
+        # Optionally apply state pattern normalization.
         if self.norm_state_pattern is not None:
             state_pattern = self.norm_state_pattern(input=state_pattern.reshape(
                 shape=(-1, state_pattern.shape[2]))).reshape(shape=state_pattern.shape)
 
-        # Optionally apply pattern projection normalisation.
+        # Optionally apply pattern projection normalization.
         if self.norm_pattern_projection is not None:
             pattern_projection = self.norm_pattern_projection(input=pattern_projection.reshape(
                 shape=(-1, pattern_projection.shape[2]))).reshape(shape=pattern_projection.shape)
@@ -399,6 +402,7 @@ class HopfieldPooling(Module):
                  normalize_hopfield_space_affine: bool = False,
                  stored_pattern_as_static: bool = False,
                  pattern_projection_as_static: bool = False,
+                 pattern_projection_as_connected: bool = False,
                  stored_pattern_size: Optional[int] = None,
                  pattern_projection_size: Optional[int] = None,
 
@@ -422,14 +426,14 @@ class HopfieldPooling(Module):
         :param scaling: scaling of association heads, often represented as beta (one entry per head)
         :param update_steps_max: maximum count of association update steps (None equals to infinity)
         :param update_steps_eps: minimum difference threshold between two consecutive association update steps
-        :param normalize_stored_pattern: apply normalisation on stored patterns
-        :param normalize_stored_pattern_affine: additionally enable affine normalisation of stored patterns
-        :param normalize_state_pattern: apply normalisation on state patterns
-        :param normalize_state_pattern_affine: additionally enable affine normalisation of state patterns
-        :param normalize_pattern_projection: apply normalisation on the pattern projection
-        :param normalize_pattern_projection_affine: additionally enable affine normalisation of pattern projection
-        :param normalize_hopfield_space: enable normalisation of patterns in the Hopfield space
-        :param normalize_hopfield_space_affine: additionally enable affine normalisation of patterns in Hopfield space
+        :param normalize_stored_pattern: apply normalization on stored patterns
+        :param normalize_stored_pattern_affine: additionally enable affine normalization of stored patterns
+        :param normalize_state_pattern: apply normalization on state patterns
+        :param normalize_state_pattern_affine: additionally enable affine normalization of state patterns
+        :param normalize_pattern_projection: apply normalization on the pattern projection
+        :param normalize_pattern_projection_affine: additionally enable affine normalization of pattern projection
+        :param normalize_hopfield_space: enable normalization of patterns in the Hopfield space
+        :param normalize_hopfield_space_affine: additionally enable affine normalization of patterns in Hopfield space
         :param stored_pattern_as_static: interpret specified stored patterns as being static
         :param state_pattern_as_static: interpret specified state patterns as being static
         :param pattern_projection_as_static: interpret specified pattern projections as being static
@@ -458,7 +462,8 @@ class HopfieldPooling(Module):
             normalize_hopfield_space=normalize_hopfield_space,
             normalize_hopfield_space_affine=normalize_hopfield_space_affine,
             stored_pattern_as_static=stored_pattern_as_static, state_pattern_as_static=True,
-            pattern_projection_as_static=pattern_projection_as_static, stored_pattern_size=stored_pattern_size,
+            pattern_projection_as_static=pattern_projection_as_static,
+            pattern_projection_as_connected=pattern_projection_as_connected, stored_pattern_size=stored_pattern_size,
             pattern_projection_size=pattern_projection_size, batch_first=batch_first,
             association_activation=association_activation, dropout=dropout, input_bias=input_bias,
             concat_bias_pattern=concat_bias_pattern, add_zero_association=add_zero_association,

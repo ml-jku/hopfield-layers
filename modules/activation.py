@@ -63,6 +63,7 @@ class HopfieldCore(Module):
                  key_as_static=False,            # type: bool
                  query_as_static=False,          # type: bool
                  value_as_static=False,          # type: bool
+                 value_as_connected=False,       # type: bool
                  normalize_pattern=False,        # type: bool
                  normalize_pattern_affine=False  # type: bool
                  ):
@@ -70,7 +71,9 @@ class HopfieldCore(Module):
         self.embed_dim = embed_dim
         self.kdim = kdim if kdim is not None else embed_dim
         self.vdim = vdim if vdim is not None else embed_dim
-        self._qkv_same_embed_dim = self.kdim == embed_dim and self.vdim == embed_dim
+        self.value_as_connected = value_as_connected
+        self._qkv_same_embed_dim = self.kdim == embed_dim and self.vdim == embed_dim and not self.value_as_connected
+        assert (not self.value_as_connected) or (self.kdim == self.vdim), r'key and value need to be of same dimension.'
 
         assert (type(key_as_static) == bool) and (type(query_as_static) == bool) and (type(value_as_static) == bool)
         self.key_as_static, self.query_as_static, self.value_as_static = key_as_static, query_as_static, value_as_static
@@ -92,7 +95,7 @@ class HopfieldCore(Module):
         assert disable_out_projection or (self.out_dim > 0), "output projection dimension has to be positive."
 
         if normalize_pattern_affine:
-            assert normalize_pattern, "affine pattern normalisation without pattern normalisation has no effect."
+            assert normalize_pattern, "affine pattern normalization without pattern normalization has no effect."
             self.p_norm_weight = Parameter(torch.Tensor(head_dim))
             self.p_norm_bias = Parameter(torch.Tensor(head_dim))
         else:
@@ -112,7 +115,9 @@ class HopfieldCore(Module):
             if value_as_static:
                 self.register_parameter('v_proj_weight', None)
             else:
-                self.v_proj_weight = Parameter(torch.Tensor(self.virtual_hopfield_dim, self.vdim))
+                self.v_proj_weight = Parameter(torch.Tensor(
+                    self.virtual_hopfield_dim,
+                    self.virtual_hopfield_dim if (value_as_connected and not key_as_static) else self.vdim))
             self.register_parameter('in_proj_weight', None)
         else:
             if num_non_static > 0:
@@ -271,7 +276,8 @@ class HopfieldCore(Module):
                 v_proj_weight=self.v_proj_weight,
 
                 key_as_static=self.key_as_static, query_as_static=self.query_as_static,
-                value_as_static=self.value_as_static, normalize_pattern=self.__normalize_pattern,
+                value_as_static=self.value_as_static, value_as_connected=self.value_as_connected,
+                normalize_pattern=self.__normalize_pattern,
                 p_norm_weight=self.p_norm_weight, p_norm_bias=self.p_norm_bias,
                 head_dim=self.head_dim, scaling=scaling,
                 update_steps_max=update_steps_max, update_steps_eps=update_steps_eps,
@@ -287,7 +293,8 @@ class HopfieldCore(Module):
                 attn_mask=attn_mask,
 
                 key_as_static=self.key_as_static, query_as_static=self.query_as_static,
-                value_as_static=self.value_as_static, normalize_pattern=self.__normalize_pattern,
+                value_as_static=self.value_as_static, value_as_connected=self.value_as_connected,
+                normalize_pattern=self.__normalize_pattern,
                 p_norm_weight=self.p_norm_weight, p_norm_bias=self.p_norm_bias,
                 head_dim=self.head_dim, scaling=scaling,
                 update_steps_max=update_steps_max, update_steps_eps=update_steps_eps,
