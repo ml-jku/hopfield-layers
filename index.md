@@ -747,7 +747,7 @@ hopfield((K, Q, Y))
 {% endhighlight %}
 
 
-##Acknowledgements
+## Acknowledgements
 
 Most of the figures are provided by Viet Tran.
 
