@@ -132,11 +132,11 @@ $$
 $$
 
 {:refdef: style="text-align: center;"}
-![not found](assets/assets/multi_pat_img/experiment_6.png)
+![not found](assets/multi_pat_img/experiment_6.png)
 {: refdef}
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/multi_pat_img/experiment_12.png">
+![not found](assets/multi_pat_img/experiment_12.png)
 {: refdef}
 
 In this figure, the left hand side shows the three stored patterns, and the right hand side shows masked state patterns $$\boldsymbol{\xi}$$ together with the retrieved patterns $$\boldsymbol{\xi}^{\text{new}}$$.
