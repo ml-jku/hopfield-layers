@@ -91,6 +91,11 @@ The input image is:
 <img src="https://raw.githubusercontent.com/brandstetter-johannes/hopfield-layers/gh-pages/assets/single_pat_img/homer_original.png" width="300">
 {: refdef}
 
+{:refdef: style="text-align: center;"}
+<img src="https://raw.githubusercontent.com/brandstetter-johannes/hopfield-layers/gh-pages/assets/single_pat_img/homer_original.png?sanitize" width="300">
+{: refdef}
+![not found](assets/single_pat_img/homer_original.png)
+
 Since an associative memory has **polar states and patterns** (or binary states and patterns), we convert the input image to a black and white image:
 
 {:refdef: style="text-align: center;"}
