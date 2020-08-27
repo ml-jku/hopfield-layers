@@ -751,11 +751,9 @@ hopfield((K, Q, Y))
 
 Most of the figures are provided by Viet Tran.
 
-Blog written with valueable inputs from Sepp Hochreiter.
+Blog written with valueable inputs from Sepp Hochreiter, Bernhard Schäfl.
 
-Technical help by Bernhard Schäfl.
-
-Thanks to Viet Tran, Bernhard Schäfl, Hubert Ramsauer, Johannes Lehner, Michael Widrich, and Günter Klambauer for contributions.
+Thanks to Viet Tran, Sepp Hochreiter, Bernhard Schäfl, Hubert Ramsauer, Johannes Lehner, Michael Widrich, and Günter Klambauer for contributions.
 
 
 [jekyll-docs]: https://jekyllrb.com/docs/home
