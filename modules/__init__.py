@@ -15,7 +15,7 @@ class Hopfield(Module):
     """
 
     def __init__(self,
-                 input_size: int,
+                 input_size: Optional[int] = None,
                  hidden_size: Optional[int] = None,
                  output_size: Optional[int] = None,
                  num_heads: int = 1,
@@ -123,9 +123,12 @@ class Hopfield(Module):
                 elementwise_affine=normalize_pattern_projection_affine)
 
         # Initialise remaining auxiliary properties.
-        assert self.association_core.head_dim > 0, f'invalid hidden dimension encountered.'
+        if self.association_core.static_execution:
+            self.__scaling = 1.0 if scaling is None else scaling
+        else:
+            assert self.association_core.head_dim > 0, f'invalid hidden dimension encountered.'
+            self.__scaling = (1.0 / sqrt(self.association_core.head_dim)) if scaling is None else scaling
         self.__batch_first = batch_first
-        self.__scaling = (1.0 / sqrt(self.association_core.head_dim)) if scaling is None else scaling
         self.__update_steps_max = update_steps_max
         self.__update_steps_eps = update_steps_eps
 
@@ -249,27 +252,27 @@ class Hopfield(Module):
         return self.__scaling.clone() if type(self.__scaling) == Tensor else self.__scaling
 
     @property
-    def stored_pattern_dim(self) -> int:
+    def stored_pattern_dim(self) -> Optional[int]:
         return self.association_core.kdim
 
     @property
-    def state_pattern_dim(self) -> int:
+    def state_pattern_dim(self) -> Optional[int]:
         return self.association_core.embed_dim
 
     @property
-    def pattern_projection_dim(self) -> int:
+    def pattern_projection_dim(self) -> Optional[int]:
         return self.association_core.vdim
 
     @property
-    def input_size(self) -> int:
+    def input_size(self) -> Optional[int]:
         return self.state_pattern_dim
 
     @property
-    def hidden_size(self) -> int:
+    def hidden_size(self) -> Optional[int]:
         return self.association_core.head_dim
 
     @property
-    def output_size(self):
+    def output_size(self) -> Optional[int]:
         return self.association_core.out_dim
 
     @property
@@ -527,19 +530,19 @@ class HopfieldPooling(Module):
         return self.hopfield.scaling
 
     @property
-    def stored_pattern_dim(self) -> int:
+    def stored_pattern_dim(self) -> Optional[int]:
         return self.hopfield.stored_pattern_dim
 
     @property
-    def state_pattern_dim(self) -> int:
+    def state_pattern_dim(self) -> Optional[int]:
         return self.hopfield.state_pattern_dim
 
     @property
-    def pattern_projection_dim(self) -> int:
+    def pattern_projection_dim(self) -> Optional[int]:
         return self.hopfield.pattern_projection_dim
 
     @property
-    def input_size(self) -> int:
+    def input_size(self) -> Optional[int]:
         return self.hopfield.input_size
 
     @property
@@ -547,7 +550,7 @@ class HopfieldPooling(Module):
         return self.hopfield.hidden_size
 
     @property
-    def output_size(self):
+    def output_size(self) -> Optional[int]:
         return self.hopfield.output_size
 
     @property
