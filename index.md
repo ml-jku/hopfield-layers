@@ -390,13 +390,13 @@ Global convergence to a local minimum means that all limit points that are gener
 The new continuous energy function allows to **extend our example to continuous patterns**. In the following, we are going to retrieve a continuous Homer out of many continuous stored patterns using Eq. \eqref{eq:update_sepp4}. First we have to convert the input images into grey scale images:
 
 {:refdef: style="text-align: center;"}
-![not found](/assets/cont_multi_pat_img/homer_gray_scale.png)
+![not found](/assets/cont_multi_pat_img/homer_gray_scale.png){:width="300px"}
 {: refdef}
 
 Next, we conduct the same experiment as above, but now in continuous form:
 
 {:refdef: style="text-align: center;"}
-![not found](/assets/cont_multi_pat_img/experiment_with_24_patterns_continuous_beta8.000.png){:width="300px"}
+![not found](/assets/cont_multi_pat_img/experiment_with_24_patterns_continuous_beta8.000.png)
 {: refdef}
 
 We again see that Homer is perfectly retrieved. We have considered the case where the patterns are sufficiently different from each other, and consequently the iterate converges to a fixed point which is near to one of the stored patterns.
