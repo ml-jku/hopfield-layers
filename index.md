@@ -1,6 +1,7 @@
 ---
 layout: default
 title:  "Hopfield Networks is All You Need"
+description: by Johannes Brandstetter
 date:   2020-08-25 09:03:39 +0200
 usemathjax: true
 ---
@@ -395,7 +396,7 @@ The new continuous energy function allows to **extend our example to continuous 
 Next, we conduct the same experiment as above, but now in continuous form:
 
 {:refdef: style="text-align: center;"}
-![not found](/assets/cont_multi_pat_img/experiment_with_24_patterns_continuous_beta8.000.png)
+![not found](/assets/cont_multi_pat_img/experiment_with_24_patterns_continuous_beta8.000.png){:width="300px"}
 {: refdef}
 
 We again see that Homer is perfectly retrieved. We have considered the case where the patterns are sufficiently different from each other, and consequently the iterate converges to a fixed point which is near to one of the stored patterns.
@@ -746,6 +747,15 @@ hopfield((K, Q, Y))
 {% endhighlight %}
 
 
+##Acknowledgements
+
+Most of the figures are provided by Viet Tran.
+
+Blog written with valueable inputs from Sepp Hochreiter.
+
+Technical help by Bernhard Schäfl.
+
+Thanks to Viet Tran, Bernhard Schäfl, Hubert Ramsauer, Johannes Lehner, Michael Widrich, and Günter Klambauer for contributions.
 
 
 [jekyll-docs]: https://jekyllrb.com/docs/home
