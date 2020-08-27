@@ -94,7 +94,7 @@ The input image is:
 Since an associative memory has **polar states and patterns** (or binary states and patterns), we convert the input image to a black and white image:
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/single_pat_img/homer_bw.png" width="300">
+![not found](assets/single_pat_img/homer_bw.png){:width="300px"}
 {: refdef}
 
 The **weight matrix** $$\boldsymbol{W}$$ is the outer product of this black and white image $$ \boldsymbol{x}_{\text{Homer}} $$:
@@ -112,7 +112,7 @@ Can the original image be restored if half of the pixels are masked out? The mas
 
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/single_pat_img/homer_bw_masked.png" width="300">
+![not found](assets/single_pat_img/homer_bw_masked.png){:width="300px"}
 {: refdef}
 
 
@@ -120,7 +120,7 @@ which is our inital state $$\boldsymbol{\xi}$$. This inital state is updated via
 It takes one update until the original image is restored.
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/single_pat_img/homer_bw_masked_retrieved.png" width="600">
+![not found](assets/single_pat_img/homer_bw_masked_retrieved.png){:width="600px"}
 {: refdef}
 
 What happens if we store **more than one pattern**? The weight matrix is then built from the sum of outer products of **three stored patterns** (three input images):
@@ -132,7 +132,7 @@ $$
 $$
 
 {:refdef: style="text-align: center;"}
-![Black-white image](/assets/multi_pat_img/experiment_6.png)
+![not found](assets/assets/multi_pat_img/experiment_6.png)
 {: refdef}
 
 {:refdef: style="text-align: center;"}
@@ -151,7 +151,7 @@ For both examples, only the retrieval after the first update step is shown, but 
 The next figure shows the Hopfield Network retrieval for 6 patterns.
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/multi_pat_img/experiment_115.png">
+![not found](assets/multi_pat_img/experiment_115.png)
 {: refdef}
 
 Clearly, retrieving the patterns is imperfect. One might suspect that the limited storage capacities of Hopfield Networks, see [Amit et al.][amit-paper] and [Torres et al][torres-paper], is the problem.
@@ -302,13 +302,13 @@ Using Eq. \eqref{eq:restorage_demircigil}, we again try to retrieve Homer out of
 - First we store the same 6 patterns as above:
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/dense_multi_pat_img_beta1/experiment_115.png">
+![not found](/assets/dense_multi_pat_img_beta1/experiment_115.png)
 {: refdef}
 
 - Next we increase the number of stored patterns to 24:
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/dense_multi_pat_img_beta1/experiment_with_24_patterns.png">
+![not found](/assets/dense_multi_pat_img_beta1/experiment_with_24_patterns.png)
 {: refdef}
 
 Compared to the traditional Hopfield Networks, the **increased storage capacity now allows to pull apart close patterns**. We are now able to distinguish (strongly) correlated patterns, and can retrieve one specific pattern out of many.
@@ -384,13 +384,13 @@ Global convergence to a local minimum means that all limit points that are gener
 The new continuous energy function allows to **extend our example to continuous patterns**. In the following, we are going to retrieve a continuous Homer out of many continuous stored patterns using Eq. \eqref{eq:update_sepp4}. First we have to convert the input images into grey scale images:
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/cont_multi_pat_img/homer_gray_scale.png">
+![not found](/assets/cont_multi_pat_img/homer_gray_scale.png)
 {: refdef}
 
 Next, we conduct the same experiment as above, but now in continuous form:
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/cont_multi_pat_img/experiment_with_24_patterns_continuous_beta8.000.png">
+![not found](/assets/cont_multi_pat_img/experiment_with_24_patterns_continuous_beta8.000.png)
 {: refdef}
 
 We again see that Homer is perfectly retrieved. We have considered the case where the patterns are sufficiently different from each other, and consequently the iterate converges to a fixed point which is near to one of the stored patterns.
@@ -398,13 +398,13 @@ However, if some stored patterns are similar to each other, then a **metastable 
 
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/cont_multi_pat_img/experiment_with_24_patterns_continuous_beta0.500.png">
+![not found](/assets/cont_multi_pat_img/experiment_with_24_patterns_continuous_beta0.500.png)
 {: refdef}
 
 To make this more explicit, we have a closer look how the results are changing if we retrieve with different values of $$\beta$$:
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/cont_multi_pat_img/reconstruction_with_different_betas.png">
+![not found](/assets/cont_multi_pat_img/reconstruction_with_different_betas.png)
 {: refdef}
 
 <br>
@@ -513,7 +513,7 @@ Additional functionalities of the new PyTorch Hopfield layer compared to the tra
 A sketch of the new Hopfield layer is provided below.
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/hopf_layer.png" width="500">
+![not found](/assets/hopf_layer.png){:width="500px"}
 {: refdef}
 
 
@@ -549,7 +549,7 @@ We also allow **static state** and **static stored patterns**. A static pattern 
 An illustration of the matrices of Eq. \eqref{eq:Hopfield_1} is shown below:
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/eq31_24.svg" width="800">
+![not found](/assets/eq31_24.svg){:width="800px"}
 {: refdef}
 
 Note that in this simplified sketch $$\boldsymbol{W}_V$$ already contains the output projection.
@@ -575,7 +575,7 @@ hopfield((Y, R, Y))
 Of course we can also use the new Hopfield layer to solve the pattern retrieval task from above. For this task no trainable weights are needed.
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/retrieve_homer.svg" width="800">
+![not found](/assets/retrieve_homer.svg){:width="800px"}
 {: refdef}
 
 {% highlight python %}
@@ -610,7 +610,7 @@ The static state pattern is considered as a **prototype pattern** and consequent
 Below we give two examples of a Hopfield pooling over the stored patterns $$\boldsymbol{Y}$$. Note that the pooling always operates over the token dimension (i.e. the sequence length), and not the token embedding dimension.
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/eq31_24_pool.svg" width="800">
+![not found](/assets/eq31_24_pool.svg){:width="800px"}
 {: refdef}
 
 {% highlight python %}
@@ -629,7 +629,7 @@ The pooling over the sequence is de facto done over the token dimension of the s
 We show another example below, where the boils down to $$\boldsymbol{Y} \in \mathbb{R}^{(3 \times 5)} \Rightarrow \boldsymbol{Z} \in \mathbb{R}^{(1 \times 5)}$$:
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/eq31_35_pool.svg" width="800">
+![not found](/assets/eq31_35_pool.svg){:width="800px"}
 {: refdef}
 
 {% highlight python %}
@@ -674,7 +674,7 @@ a **needle-in-a-haystack** problem and a strong challenge for machine learning m
 Based on modern Hopfield networks, a neural network method called **DeepRC** was designed:
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/Figure_Overview_DeepRC.svg" width="800">
+![not found](/assets/Figure_Overview_DeepRC.svg){:width="800px"}
 {: refdef}
 
 DeepRC consists of three parts:
@@ -685,6 +685,7 @@ DeepRC consists of three parts:
 The sketch below visualizes the **Hopfield layer part**:
 
 {:refdef: style="text-align: center;"}
+![not found](/assets/deeprc_new.svg){:width="500px"}
 <img src="/assets/deeprc_new.svg" width="500">
 {: refdef}
 
