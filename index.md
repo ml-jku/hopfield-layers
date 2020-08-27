@@ -2,7 +2,7 @@
 layout: default
 title:  "Hopfield Networks is All You Need"
 date:   2020-08-25 09:03:39 +0200
-categories: jekyll update
+usemathjax: true
 ---
 
 This blog post explains the paper [Hopfield Networks is All You Need][arxiv-paper] and the corresponding new PyTorch [Hopfield layer][github-repo].
