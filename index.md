@@ -88,13 +88,8 @@ We start with an **illustrative example** of a Hopfield Network. **One input ima
 The input image is:
 
 {:refdef: style="text-align: center;"}
-<img src="https://raw.githubusercontent.com/brandstetter-johannes/hopfield-layers/gh-pages/assets/single_pat_img/homer_original.png" width="300">
-{: refdef}
-
-{:refdef: style="text-align: center;"}
-<img src="https://raw.githubusercontent.com/brandstetter-johannes/hopfield-layers/gh-pages/assets/single_pat_img/homer_original.png?sanitize" width="300">
-{: refdef}
 ![not found](assets/single_pat_img/homer_original.png)
+{: refdef}
 
 Since an associative memory has **polar states and patterns** (or binary states and patterns), we convert the input image to a black and white image:
 
@@ -433,7 +428,7 @@ $$
 \end{equation}
 $$
 
-We first consider $$\boldsymbol{X}^T$$ as $$N$$ *raw stored patterns* $$\boldsymbol{Y} = (\boldsymbol{y}_1,\ldots,\boldsymbol{y}_N)^T$$, which are mapped to an associative space via $$\boldsymbol{W}_K$$, and $$\boldsymbol{\Xi}^T$$ as $$S$$ *raw state patterns* $$\boldsymbol{R} = (\boldsymbol{y}_1,\ldots,\boldsymbol{y}_S)^T$$, which are mapped to an associative space via $$\boldsymbol{W}_Q$$.
+We first consider $$\boldsymbol{X}^T$$ as $$N$$ *raw stored patterns* $$\boldsymbol{Y} = (\boldsymbol{y}_1,\ldots,\boldsymbol{y}_N)^T$$, which are mapped to an associative space via $$\boldsymbol{W}_K$$, and $$\boldsymbol{\Xi}^T$$ as $$S$$ *raw state patterns* $$\boldsymbol{R} = (\boldsymbol{\xi}_1,\ldots,\boldsymbol{\xi}_S)^T$$, which are mapped to an associative space via $$\boldsymbol{W}_Q$$.
 
 Setting
 
