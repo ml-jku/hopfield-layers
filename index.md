@@ -88,7 +88,7 @@ We start with an **illustrative example** of a Hopfield Network. **One input ima
 The input image is:
 
 {:refdef: style="text-align: center;"}
-<img src="/assets/single_pat_img/homer_original.png" width="300">
+<img src="https://raw.githubusercontent.com/brandstetter-johannes/hopfield-layers/gh-pages/assets/single_pat_img/homer_original.png" width="300">
 {: refdef}
 
 Since an associative memory has **polar states and patterns** (or binary states and patterns), we convert the input image to a black and white image:
