@@ -686,7 +686,6 @@ The sketch below visualizes the **Hopfield layer part**:
 
 {:refdef: style="text-align: center;"}
 ![not found](/assets/deeprc_new.svg){:width="500px"}
-<img src="/assets/deeprc_new.svg" width="500">
 {: refdef}
 
 It is to note that for immune repertoire classification 
