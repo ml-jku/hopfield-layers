@@ -677,18 +677,30 @@ since each immune repertoire contains a large amount of sequences as instances w
 This is a prominent example of 
 a **needle-in-a-haystack** problem and a strong challenge for machine learning methods. 
 
-Based on modern Hopfield networks, a neural network method called **DeepRC** was designed:
+Based on modern Hopfield networks, a method called **DeepRC** was designed, which consists of three parts:
+- a sequence-embedding neural network to supply a fixed-sized sequence-representation (e.g. 1D-CNN or LSTM),
+- a **Hopfield layer part** for sequence-attention, and
+- an output neural network and/or fully connected output layer.
+
+The following figure illustrates these 3 parts of DeepRC:
 
 {:refdef: style="text-align: center;"}
 ![not found](/assets/Figure_Overview_DeepRC.svg){:width="800px"}
 {: refdef}
 
-DeepRC consists of three parts:
-- a sequence-embedding neural network $$h(.)$$ to supply a fixed-sized sequence-representation (e.g. 1D-CNN or LSTM),
-- a **Hopfield layer part** for sequence-attention $$f(.)$$, and
-- an output neural network and/or fully connected output layer $$o(.)$$.
+So far we have discussed two use cases of the Hopfield layer: 
+(i) the default setting where the **input consists of stored patterns and state patterns** and 
+(ii) the Hopfield pooling, where **a prototype pattern** is learned, which means that the vector $$\boldsymbol{Q}$$ is learned. 
+For immune repertoire classification we have another use case. 
+Now the **inputs** for the Hopfield layer are partly **obtained via neural networks**.
 
-The sketch below visualizes the **Hopfield layer part**:
+To be more precise, the three ingredients of the attention mechanism of **DeepRC** are:
+
+- the output of the sequence-embedding neural network $$\boldsymbol{Y}^T$$ directly acts as values $$\boldsymbol{V}$$,
+- a second neural network, e.g. a [self-normalizing neural network (SNN)][klambauer-paper], shares its first layers with the sequence-embedding neural network and outputs the keys $$\boldsymbol{K}$$, i.e. the stored patterns, and
+- similar to the Hopfield pooling operation, the query vector $$\boldsymbol{Q}$$ is learned and represents the variable binding sub-sequence we are looking for.
+
+The following sketch visualizes the **Hopfield layer part** of DeepRC:
 
 {:refdef: style="text-align: center;"}
 ![not found](/assets/deeprc_new.svg){:width="500px"}
@@ -700,22 +712,10 @@ To be
 more precise, the 
 difference is a factor of $$10^4$$ to $$10^5$$.
 This is indicated in the sketch, where $$\textbf{Y}^T$$ has more columns than rows.
+The complex SNN-based attention mechanism reduces this large number of instances,
+while keeping the complexity of the input to the output neural network low.
 
-So far we have discussed two use cases of the Hopfield layer: 
-(i) the default setting where the **input consists of stored patterns and state patterns** and 
-(ii) the Hopfield pooling, where **a prototype pattern** is learned, which means that the vector $$\boldsymbol{Q}$$ is learned. 
-For immune repertoire classification we have another use case. 
-Now the **inputs** for the Hopfield layer are partly **obtained via neural networks**.
-
-The three ingredients of the attention mechanism of **DeepRC** are:
-
-- the output of the sequence-embedding neural network $$\boldsymbol{Y}^T$$ directly acts as values $$\boldsymbol{V}$$,
-- a second neural network, e.g. a [self-normalizing neural network (SNN)][klambauer-paper], shares its first layers with the sequence-embedding neural network and outputs the keys $$\boldsymbol{K}$$, i.e. the stored patterns, and
-- similar to the Hopfield pooling operation, the query vector $$\boldsymbol{Q}$$ is learned and represents the variable binding sub-sequence we are looking for.
-
-This results in a complex attention mechanism that is able to deal with the large number of instances,
-while keeping the complexity of the input to the output network low.
-
+The pseudo-code for the [Hopfield layer][github-repo] used in DeepRC is:
 
 {% highlight python %}
 Y = EmbeddingNN(I)  # e.g. 1D-CNN
