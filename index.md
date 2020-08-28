@@ -1,7 +1,7 @@
 ---
 layout: default
 title:  "Hopfield Networks is All You Need"
-description: by Johannes Brandstetter
+description: Blogpost
 date:   2020-08-25 09:03:39 +0200
 usemathjax: true
 ---
@@ -649,7 +649,7 @@ hopfield_pooling = HopfieldPooling(
 hopfield_pooling(Y)
 {% endhighlight %}
 
-### DeepRC
+## DeepRC
 
 One SOTA application of modern Hopfield Networks can be found in the paper [Modern Hopfield Networks and Attention for Immune Repertoire Classification][deeprc-paper] by Widrich et al.
 Here, the high storage capacity of modern Hopfield Networks is exploited to solve a challenging [multiple instance learning (MIL)][dietterich-paper] problem in computational biology called **immune repertoire classification**.
@@ -747,13 +747,10 @@ hopfield((K, Q, Y))
 {% endhighlight %}
 
 
-## Acknowledgements
+## Responsibility
 
-Most of the figures are provided by Viet Tran.
-
-Blog written with valueable inputs from Sepp Hochreiter, Bernhard Schäfl.
-
-Thanks to Viet Tran, Sepp Hochreiter, Bernhard Schäfl, Hubert Ramsauer, Johannes Lehner, Michael Widrich, and Günter Klambauer for contributions.
+This blogpost was written by Johannes Brandstetter: brandstetter[at]ml.jku.at
+Contributions by Viet Tran, Bernhard Schäfl, Hubert Ramsauer, Johannes Lehner, Michael Widrich, Günter Klambauer and Sepp Hochreiter.
 
 
 [jekyll-docs]: https://jekyllrb.com/docs/home
