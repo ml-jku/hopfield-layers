@@ -750,6 +750,7 @@ hopfield((K, Q, Y))
 ## Responsibility
 
 This blogpost was written by Johannes Brandstetter: brandstetter[at]ml.jku.at
+
 Contributions by Viet Tran, Bernhard Schäfl, Hubert Ramsauer, Johannes Lehner, Michael Widrich, Günter Klambauer and Sepp Hochreiter.
 
 
