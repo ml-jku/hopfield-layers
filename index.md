@@ -1,12 +1,12 @@
 ---
 layout: default
 title:  "Hopfield Networks is All You Need"
-description: Blogpost
+description: Blog post
 date:   2020-08-25 09:03:39 +0200
 usemathjax: true
 ---
 
-This blogpost explains the paper [Hopfield Networks is All You Need][arxiv-paper] and the corresponding new PyTorch [Hopfield layer][github-repo].
+This blog post explains the paper [Hopfield Networks is All You Need][arxiv-paper] and the corresponding new PyTorch [Hopfield layer][github-repo].
 
 ## Main contributions
 We introduce a new energy function and a corresponding new update rule which is guaranteed to converge to a local minimum of the energy function.
@@ -22,7 +22,7 @@ We use these new insights to analyze transformer models in the paper.
 
 ## What this blog post is about
 
-This blogpost is split into three parts. First, we make the transition from traditional Hopfield Networks towards **modern Hopfield Networks** and their generalization to continuous states through our **new energy function**. Second, the properties of our new energy function and the connection to the self-attention mechanism of transformer networks is shown. Finally, we introduce and explain a new PyTorch layer ([Hopfield layer][github-repo]), which is built on the insights of our work. We show several practical use cases, i.e. [Modern Hopfield Networks and Attention for Immune Repertoire Classification][deepRC-paper], Hopfield pooling, and associations of two sets.
+This blog post is split into three parts. First, we make the transition from traditional Hopfield Networks towards **modern Hopfield Networks** and their generalization to continuous states through our **new energy function**. Second, the properties of our new energy function and the connection to the self-attention mechanism of transformer networks is shown. Finally, we introduce and explain a new PyTorch layer ([Hopfield layer][github-repo]), which is built on the insights of our work. We show several practical use cases, i.e. [Modern Hopfield Networks and Attention for Immune Repertoire Classification][deepRC-paper], Hopfield pooling, and associations of two sets.
 
 ## From classical Hopfield Networks to self-attention
 
@@ -760,7 +760,7 @@ hopfield((K, Q, Y))
 
 ## Correspondence
 
-This blogpost was written by Johannes Brandstetter: brandstetter[at]ml.jku.at
+This blog post was written by Johannes Brandstetter: brandstetter[at]ml.jku.at
 
 Contributions by Viet Tran, Bernhard Schäfl, Hubert Ramsauer, Johannes Lehner, Michael Widrich, Günter Klambauer and Sepp Hochreiter.
 
