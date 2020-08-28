@@ -758,7 +758,7 @@ hopfield((K, Q, Y))
 
 - [Yannic Kilcher's video on our two papers][kilcher-video]
 
-## Responsibility
+## Correspondence
 
 This blogpost was written by Johannes Brandstetter: brandstetter[at]ml.jku.at
 
