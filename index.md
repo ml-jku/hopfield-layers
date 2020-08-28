@@ -756,6 +756,8 @@ hopfield((K, Q, Y))
 
 - [Githup repo: DeepRC][github-repo-deeprc]
 
+- [Yannic Kilcher's video on our two papers][kilcher-video]
+
 ## Responsibility
 
 This blogpost was written by Johannes Brandstetter: brandstetter[at]ml.jku.at
@@ -787,4 +789,4 @@ Contributions by Viet Tran, Bernhard Schäfl, Hubert Ramsauer, Johannes Lehner, 
 [dietterich-paper]: https://www.ics.uci.edu/~rickl/publications/1997-aij.pdf
 [mora-paper]: https://www.sciencedirect.com/science/article/pii/S2452310019300289
 [klambauer-paper]: http://papers.nips.cc/paper/6698-self-normalizing-neural-networks.pdf
-
+[kilcher-video]: https://www.youtube.com/watch?v=nv6oFDp6rNQ
