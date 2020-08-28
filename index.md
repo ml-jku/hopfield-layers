@@ -746,6 +746,15 @@ hopfield((K, Q, Y))
 
 {% endhighlight %}
 
+## Material
+
+- [Paper: Hopfield Networks is All You Need][arxiv-paper]
+
+- [Githup repo: hopfield-layers][github-repo]
+
+- [Paper: Modern Hopfield Networks and Attention for Immune Repertoire Classification][deeprc-paper]
+
+- [Githup repo: DeepRC][github-repo-deeprc]
 
 ## Responsibility
 
@@ -760,6 +769,7 @@ Contributions by Viet Tran, Bernhard Schäfl, Hubert Ramsauer, Johannes Lehner, 
 
 [arxiv-paper]: https://arxiv.org/abs/2008.02217
 [github-repo]: https://github.com/ml-jku/hopfield-layers
+[github-repo-deeprc]: https://github.com/ml-jku/DeepRC 
 [krotov-paper]: https://arxiv.org/abs/1606.01164
 [demircigil-paper]: https://arxiv.org/abs/1702.01929
 [vaswani-paper]: https://arxiv.org/abs/1706.03762
