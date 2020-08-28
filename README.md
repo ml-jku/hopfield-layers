@@ -23,6 +23,10 @@ Sepp Hochreiter<sup>1, 2</sup>_
 
 ---
 
+##### Detailed blog post on this paper as well as the necessary background on Hopfield networks at [this link](https://ml-jku.github.io/hopfield-layers/).
+
+---
+
 The transformer and BERT models pushed the performance on NLP tasks to new levels via their attention mechanism. We show
 that this attention mechanism is the update rule of a modern Hopfield network with continuous states. This new Hopfield
 network can store exponentially (with the dimension) many patterns,converges with one update, and has exponentially
