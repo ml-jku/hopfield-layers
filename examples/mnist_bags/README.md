@@ -17,7 +17,7 @@ error = 1. - Y_hat.eq(Y).cpu().float().mean().item()
 ``` 
 * Set the path to the directory you copied ADMIL to in the first cell of the [mnist_bags_demo.ipynb](mnist_bags_demo.ipynb) notebook. 
 
-* In cell 4 the parameters for the experiment can be set. Notably the model can be choosen.
+* In cell 4 the parameters for the experiment can be set. Notably the model can be chosen.
 
 * Run the notebook.
 
@@ -29,6 +29,6 @@ error = 1. - Y_hat.eq(Y).cpu().float().mean().item()
 
 
 ## Disclaimer
-The purpose of this notbeook is mearly to demonstrate how to use the Hopfield pooling layer. In no way it is intended as a comparison of the methods.  
+The purpose of this notebook is merely to demonstrate how to use the Hopfield pooling layer. In no way it is intended as a comparison of the methods.  
 
 
