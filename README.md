@@ -63,6 +63,13 @@ The software was developed and tested on the following 64-bit operating systems:
 
 As the development environment, [Python](https://www.python.org) 3.8.3 in combination with [PyTorch](https://pytorch.org) 1.6.0 was used (a version of at least 1.5.0 should be sufficient). More details on how to install PyTorch are available on the [official project page](https://pytorch.org).
 
+## Installation
+
+```bash
+# Inside of the repository
+pip install .
+```
+
 ## Usage
 
 To get up and running with Hopfield-based networks, only <i>one</i> argument needs to be set, the size (depth) of the input.
@@ -101,10 +108,10 @@ The folder [examples](examples/) contains multiple demonstrations on how to use 
 
 Some implementations of this repository are based on existing ones of the official [PyTorch repository v1.6.0](https://github.com/pytorch/pytorch/tree/v1.6.0) and accordingly extended and modified. In the following, the involved parts are listed:
 
-- The implementation of [HopfieldCore](modules/activation.py#L11) is based on the implementation of [MultiheadAttention](https://github.com/pytorch/pytorch/blob/b31f58de6fa8bbda5353b3c77d9be4914399724d/torch/nn/modules/activation.py#L771).
-- The implementation of [hopfield_core_forward](modules/functional.py#L8) is based on the implementation of [multi_head_attention_forward](https://github.com/pytorch/pytorch/blob/b31f58de6fa8bbda5353b3c77d9be4914399724d/torch/nn/functional.py#L3854).
-- The implementation of [HopfieldEncoderLayer](modules/transformer.py#L12) is based on the implementation of [TransformerEncoderLayer](https://github.com/pytorch/pytorch/blob/b31f58de6fa8bbda5353b3c77d9be4914399724d/torch/nn/modules/transformer.py#L241).
-- The implementation of [HopfieldDecoderLayer](modules/transformer.py#L88) is based on the implementation of [TransformerDecoderLayer](https://github.com/pytorch/pytorch/blob/b31f58de6fa8bbda5353b3c77d9be4914399724d/torch/nn/modules/transformer.py#L303).
+- The implementation of [HopfieldCore](hopfield_layers/activation.py#L11) is based on the implementation of [MultiheadAttention](https://github.com/pytorch/pytorch/blob/b31f58de6fa8bbda5353b3c77d9be4914399724d/torch/nn/modules/activation.py#L771).
+- The implementation of [hopfield_core_forward](hopfield_layers/functional.py#L8) is based on the implementation of [multi_head_attention_forward](https://github.com/pytorch/pytorch/blob/b31f58de6fa8bbda5353b3c77d9be4914399724d/torch/nn/functional.py#L3854).
+- The implementation of [HopfieldEncoderLayer](hopfield_layers/transformer.py#L12) is based on the implementation of [TransformerEncoderLayer](https://github.com/pytorch/pytorch/blob/b31f58de6fa8bbda5353b3c77d9be4914399724d/torch/nn/modules/transformer.py#L241).
+- The implementation of [HopfieldDecoderLayer](hopfield_layers/transformer.py#L88) is based on the implementation of [TransformerDecoderLayer](https://github.com/pytorch/pytorch/blob/b31f58de6fa8bbda5353b3c77d9be4914399724d/torch/nn/modules/transformer.py#L303).
 
 ## License
 
