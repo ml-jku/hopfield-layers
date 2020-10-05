@@ -18,6 +18,7 @@ class Hopfield(Module):
                  input_size: Optional[int] = None,
                  hidden_size: Optional[int] = None,
                  output_size: Optional[int] = None,
+                 pattern_size: Optional[int] = None,
                  num_heads: int = 1,
                  scaling: Optional[Union[float, Tensor]] = None,
                  update_steps_max: Optional[Union[int, Tensor]] = 0,
@@ -52,6 +53,7 @@ class Hopfield(Module):
         :param input_size: depth of the input (state pattern)
         :param hidden_size: depth of the association space
         :param output_size: depth of the output projection
+        :param pattern_size: depth of patterns to be selected
         :param num_heads: amount of parallel association heads
         :param scaling: scaling of association heads, often represented as beta (one entry per head)
         :param update_steps_max: maximum count of association update steps (None equals to infinity)
@@ -86,7 +88,7 @@ class Hopfield(Module):
         self.association_core = HopfieldCore(
             embed_dim=input_size, num_heads=num_heads, dropout=dropout, bias=input_bias,
             add_bias_kv=concat_bias_pattern, add_zero_attn=add_zero_association, kdim=stored_pattern_size,
-            vdim=pattern_projection_size, head_dim=hidden_size, out_dim=output_size,
+            vdim=pattern_projection_size, head_dim=hidden_size, pattern_dim=pattern_size, out_dim=output_size,
             disable_out_projection=disable_out_projection, key_as_static=stored_pattern_as_static,
             query_as_static=state_pattern_as_static, value_as_static=pattern_projection_as_static,
             value_as_connected=pattern_projection_as_connected, normalize_pattern=normalize_hopfield_space,
@@ -276,6 +278,10 @@ class Hopfield(Module):
         return self.association_core.out_dim
 
     @property
+    def pattern_size(self) -> Optional[int]:
+        return self.association_core.pattern_dim
+
+    @property
     def update_steps_max(self) -> Optional[Union[int, Tensor]]:
         return self.__update_steps_max.clone() if type(self.__update_steps_max) == Tensor else self.__update_steps_max
 
@@ -318,6 +324,14 @@ class Hopfield(Module):
     @property
     def normalize_pattern_projection_affine(self) -> bool:
         return self.normalize_pattern_projection and self.norm_pattern_projection.elementwise_affine
+
+    @property
+    def normalize_hopfield_space(self) -> bool:
+        return self.hopfield.normalize_hopfield_space
+
+    @property
+    def normalize_hopfield_space_affine(self) -> bool:
+        return self.hopfield.normalize_hopfield_space_affine
 
 
 class StatePattern(Module):
@@ -390,6 +404,7 @@ class HopfieldPooling(Module):
                  input_size: int,
                  hidden_size: Optional[int] = None,
                  output_size: Optional[int] = None,
+                 pattern_size: Optional[int] = None,
                  num_heads: int = 1,
                  scaling: Optional[Union[float, Tensor]] = None,
                  update_steps_max: Optional[Union[int, Tensor]] = 0,
@@ -404,6 +419,7 @@ class HopfieldPooling(Module):
                  normalize_hopfield_space: bool = False,
                  normalize_hopfield_space_affine: bool = False,
                  stored_pattern_as_static: bool = False,
+                 state_pattern_as_static: bool = False,
                  pattern_projection_as_static: bool = False,
                  pattern_projection_as_connected: bool = False,
                  stored_pattern_size: Optional[int] = None,
@@ -425,6 +441,7 @@ class HopfieldPooling(Module):
         :param input_size: depth of the input (state pattern)
         :param hidden_size: depth of the association space
         :param output_size: depth of the output projection
+        :param pattern_size: depth of patterns to be selected
         :param num_heads: amount of parallel association heads
         :param scaling: scaling of association heads, often represented as beta (one entry per head)
         :param update_steps_max: maximum count of association update steps (None equals to infinity)
@@ -454,8 +471,8 @@ class HopfieldPooling(Module):
         """
         super(HopfieldPooling, self).__init__()
         self.hopfield = Hopfield(
-            input_size=input_size, hidden_size=hidden_size, output_size=output_size, num_heads=num_heads,
-            scaling=scaling, update_steps_max=update_steps_max, update_steps_eps=update_steps_eps,
+            input_size=input_size, hidden_size=hidden_size, output_size=output_size, pattern_size=pattern_size,
+            num_heads=num_heads, scaling=scaling, update_steps_max=update_steps_max, update_steps_eps=update_steps_eps,
             normalize_stored_pattern=normalize_stored_pattern,
             normalize_stored_pattern_affine=normalize_stored_pattern_affine,
             normalize_state_pattern=normalize_state_pattern,
@@ -464,7 +481,7 @@ class HopfieldPooling(Module):
             normalize_pattern_projection_affine=normalize_pattern_projection_affine,
             normalize_hopfield_space=normalize_hopfield_space,
             normalize_hopfield_space_affine=normalize_hopfield_space_affine,
-            stored_pattern_as_static=stored_pattern_as_static, state_pattern_as_static=True,
+            stored_pattern_as_static=stored_pattern_as_static, state_pattern_as_static=state_pattern_as_static,
             pattern_projection_as_static=pattern_projection_as_static,
             pattern_projection_as_connected=pattern_projection_as_connected, stored_pattern_size=stored_pattern_size,
             pattern_projection_size=pattern_projection_size, batch_first=batch_first,
@@ -472,7 +489,8 @@ class HopfieldPooling(Module):
             concat_bias_pattern=concat_bias_pattern, add_zero_association=add_zero_association,
             disable_out_projection=disable_out_projection)
         self.pooling_weights = StatePattern(
-            size=self.hopfield.hidden_size, quantity=quantity, batch_first=batch_first, trainable=trainable)
+            size=self.hopfield.hidden_size if state_pattern_as_static else self.hopfield.input_size,
+            quantity=quantity, batch_first=batch_first, trainable=trainable)
 
     def forward(self, input: Tensor, stored_pattern_padding_mask: Optional[Tensor] = None,
                 association_mask: Optional[Tensor] = None) -> Tensor:
@@ -552,6 +570,10 @@ class HopfieldPooling(Module):
     @property
     def output_size(self) -> Optional[int]:
         return self.hopfield.output_size
+
+    @property
+    def pattern_size(self) -> Optional[int]:
+        return self.hopfield.pattern_size
 
     @property
     def update_steps_max(self) -> Optional[Union[int, Tensor]]:

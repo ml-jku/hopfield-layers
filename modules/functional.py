@@ -37,6 +37,7 @@ def hopfield_core_forward(query,                           # type: Tensor
                           p_norm_weight=None,              # type: Optional[Tensor]
                           p_norm_bias=None,                # type: Optional[Tensor]
                           head_dim=None,                   # type: Optional[int]
+                          pattern_dim=None,                # type: Optional[int]
                           scaling=None,                    # type: Optional[Union[float, Tensor]]
                           update_steps_max=0,              # type: Optional[Union[int, Tensor]]
                           update_steps_eps=1e-4,           # type: Union[float, Tensor]
@@ -77,6 +78,7 @@ def hopfield_core_forward(query,                           # type: Tensor
         normalize_pattern: enable normalization of patterns.
         p_norm_weight, p_norm_bias: pattern normalization weight and bias.
         head_dim: dimensionality of each head.
+        pattern_dim: dimensionality of each projected value input.
         scaling: scaling of association heads, often represented as beta (one entry per head).
         update_steps_max: maximum count of association update steps (None equals to infinity).
         update_steps_eps: minimum difference threshold between two consecutive association update steps.
@@ -131,7 +133,7 @@ def hopfield_core_forward(query,                           # type: Tensor
                 key_as_static=key_as_static, query_as_static=query_as_static,
                 value_as_static=value_as_static, value_as_connected=value_as_connected,
                 normalize_pattern=normalize_pattern, p_norm_weight=p_norm_weight, p_norm_bias=p_norm_bias,
-                head_dim=head_dim, scaling=scaling, update_steps_max=update_steps_max,
+                head_dim=head_dim, pattern_dim=pattern_dim, scaling=scaling, update_steps_max=update_steps_max,
                 update_steps_eps=update_steps_eps, return_raw_associations=return_raw_associations)
     tgt_len, bsz, embed_dim = query.shape[0], value.shape[1], query.shape[2]
     assert embed_dim == embed_dim_to_check
@@ -159,11 +161,16 @@ def hopfield_core_forward(query,                           # type: Tensor
         assert update_steps_eps > 0, "only positive thresholds allowed."
         update_steps_eps = torch.tensor([update_steps_eps] * num_heads, dtype=query.dtype, device=query.device)
 
+    # Adapt dimensionality of each each.
     if head_dim is None:
-        hopfield_dim = embed_dim // num_heads
-        assert head_dim * num_heads == hopfield_dim, r'embed_dim must be divisible by num_heads.'
-    else:
-        hopfield_dim = num_heads * head_dim
+        head_dim = embed_dim // num_heads
+        assert head_dim * num_heads == embed_dim, r'embed_dim must be divisible by num_heads.'
+    hopfield_dim = num_heads * head_dim
+
+    # Adapt dimensionality of each value projection.
+    if pattern_dim is None:
+        pattern_dim = head_dim
+    assert (not value_as_connected) or (pattern_dim == head_dim)
 
     q, k, v, xi, src_len = None, None, None, None, 0
     update_step, xi_old, xi_difference_norm = 0, None, float(r'+inf')
@@ -277,14 +284,15 @@ def hopfield_core_forward(query,                           # type: Tensor
                     if value_as_connected:
                         v = nn.functional.linear(v, k_proj_weight_non_opt, _bias)
                     _start += hopfield_dim
-                    _end += hopfield_dim
+                    _end += num_heads * pattern_dim
 
                 if value_as_static:
-                    v = v.repeat(1, num_heads, 1)
+                    if not (value_as_connected or key_as_static):
+                        v = v.repeat(1, num_heads, 1)
                 else:
                     v_proj_weight_non_opt = torch.jit._unwrap_optional(v_proj_weight)
                     len1, len2 = v_proj_weight_non_opt.size()
-                    assert len1 == hopfield_dim and len2 == v.size(-1)
+                    assert len1 == (num_heads * pattern_dim) and len2 == v.size(-1)
                     if in_proj_bias is not None:
                         v = nn.functional.linear(v, v_proj_weight_non_opt, in_proj_bias[_start:_end])
                     else:
@@ -359,7 +367,7 @@ def hopfield_core_forward(query,                           # type: Tensor
             if k is not None:
                 k = k.contiguous().view(-1, bsz * num_heads, head_dim).transpose(0, 1)
             if v is not None:
-                v = v.contiguous().view(-1, bsz * num_heads, head_dim).transpose(0, 1)
+                v = v.contiguous().view(v.shape[0], bsz * num_heads, -1).transpose(0, 1)
 
             if static_k is not None:
                 assert static_k.size(0) == bsz * num_heads
@@ -368,7 +376,7 @@ def hopfield_core_forward(query,                           # type: Tensor
 
             if static_v is not None:
                 assert static_v.size(0) == bsz * num_heads
-                assert static_v.size(2) == head_dim
+                assert static_v.size(2) == pattern_dim
                 v = static_v
 
             src_len = k.size(1)
@@ -426,13 +434,14 @@ def hopfield_core_forward(query,                           # type: Tensor
 
     attn_output_weights = nn.functional.dropout(xi, p=dropout_p, training=training)
     attn_output = torch.bmm(attn_output_weights, v)
-    assert list(attn_output.size()) == [bsz * num_heads, tgt_len, head_dim]
-    attn_output = attn_output.transpose(0, 1).contiguous().view(tgt_len, bsz, hopfield_dim)
+    assert list(attn_output.shape[:2]) == [bsz * num_heads, tgt_len]
+    attn_output = attn_output.transpose(0, 1).contiguous().view(tgt_len, bsz, -1)
     if out_proj_weight is not None:
+        assert attn_output.shape[2] == num_heads * pattern_dim
         attn_output = nn.functional.linear(attn_output, out_proj_weight, out_proj_bias)
 
     xi = xi.view(bsz, num_heads, tgt_len, src_len) if return_raw_associations else None
-    v = v.view(bsz, num_heads, src_len, head_dim) if return_projected_patterns else None
+    v = v.view(bsz, num_heads, src_len, -1) if return_projected_patterns else None
     if need_weights:
         # average attention weights over heads
         attn_output_weights = attn_output_weights.view(bsz, num_heads, tgt_len, src_len)

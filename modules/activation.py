@@ -58,6 +58,7 @@ class HopfieldCore(Module):
                  vdim=None,                      # type: Optional[int]
 
                  head_dim=None,                  # type: Optional[int]
+                 pattern_dim=None,               # type: Optional[int]
                  out_dim=None,                   # type: Optional[int]
                  disable_out_projection=False,   # type: bool
                  key_as_static=False,            # type: bool
@@ -89,12 +90,14 @@ class HopfieldCore(Module):
         self.embed_dim = embed_dim
         self.kdim = kdim if kdim is not None else embed_dim
         self.vdim = vdim if vdim is not None else embed_dim
-        self._qkv_same_embed_dim = self.kdim == embed_dim and self.vdim == embed_dim and not self.value_as_connected
+        self._qkv_same_embed_dim = all((
+            self.kdim == embed_dim, self.vdim == embed_dim, pattern_dim is None, not self.value_as_connected))
         assert (not self.value_as_connected) or (self.kdim == self.vdim), r'key and value need to be of same dimension.'
 
         self.num_heads = num_heads
         self.dropout = dropout
         self.head_dim = None
+        self.pattern_dim = pattern_dim
         if not self.static_execution:
             if head_dim is None:
                 self.head_dim = embed_dim // num_heads
@@ -102,7 +105,10 @@ class HopfieldCore(Module):
             else:
                 assert head_dim > 0, "dimension of the association space has to be positive."
                 self.head_dim = head_dim
+            if self.pattern_dim is None:
+                self.pattern_dim = self.head_dim
         self.virtual_hopfield_dim = None if (self.head_dim is None) else (self.num_heads * self.head_dim)
+        self.virtual_pattern_dim = None if (self.pattern_dim is None) else (self.num_heads * self.pattern_dim)
 
         self.out_dim = embed_dim if out_dim is None else out_dim
         assert disable_out_projection or (self.out_dim > 0), "output projection dimension has to be positive."
@@ -128,12 +134,15 @@ class HopfieldCore(Module):
                 self.register_parameter('v_proj_weight', None)
             else:
                 self.v_proj_weight = Parameter(torch.Tensor(
-                    self.virtual_hopfield_dim,
+                    self.virtual_pattern_dim,
                     self.virtual_hopfield_dim if (value_as_connected and not key_as_static) else self.vdim))
             self.register_parameter('in_proj_weight', None)
         else:
             if num_non_static > 0:
-                self.in_proj_weight = Parameter(torch.empty(num_non_static * self.virtual_hopfield_dim, embed_dim))
+                self.in_proj_weight = Parameter(torch.empty(
+                    (not query_as_static) * self.virtual_hopfield_dim +
+                    (not key_as_static) * self.virtual_hopfield_dim +
+                    (not value_as_static) * self.virtual_pattern_dim, embed_dim))
             else:
                 self.register_parameter('in_proj_weight', None)
             self.register_parameter('q_proj_weight', None)
@@ -141,16 +150,18 @@ class HopfieldCore(Module):
             self.register_parameter('v_proj_weight', None)
 
         if bias and (num_non_static > 0):
-            self.in_proj_bias = Parameter(torch.empty(num_non_static * self.virtual_hopfield_dim))
+            self.in_proj_bias = Parameter(torch.empty(
+                (not query_as_static) * self.virtual_hopfield_dim +
+                (not key_as_static) * self.virtual_hopfield_dim + self.virtual_pattern_dim))
         else:
             self.register_parameter('in_proj_bias', None)
         if disable_out_projection:
             self.register_parameter('out_proj', None)
         else:
             if bias and _LinearWithBias is not None:
-                self.out_proj = _LinearWithBias(self.virtual_hopfield_dim, self.out_dim)
+                self.out_proj = _LinearWithBias(self.virtual_pattern_dim, self.out_dim)
             else:
-                self.out_proj = Linear(self.virtual_hopfield_dim, self.out_dim, bias=bias)
+                self.out_proj = Linear(self.virtual_pattern_dim, self.out_dim, bias=bias)
 
         self.bias_k, self.bias_v = None, None
         if add_bias_kv:
@@ -166,8 +177,8 @@ class HopfieldCore(Module):
     def _check_execution_mode(self) -> bool:
         return all((
             self.key_as_static, self.query_as_static, self.value_as_static, not self.value_as_connected,
-            not self.normalize_pattern, not self.normalize_pattern_affine, self.disable_out_projection)
-        )
+            not self.normalize_pattern, not self.normalize_pattern_affine, self.disable_out_projection
+        ))
 
     def _reset_parameters(self):
         if self.p_norm_weight is not None:
@@ -280,7 +291,7 @@ class HopfieldCore(Module):
         assert self.value_as_static or (value.shape[2] == self.vdim), \
             f'value shape[2] of {value.shape[2]} invalid, needs to be {self.vdim}.'
         assert any((
-            not self.value_as_static, self.value_as_static and value.shape[2] == self.head_dim,
+            not self.value_as_static, self.value_as_static and value.shape[2] == self.pattern_dim,
             self.disable_out_projection)
         ), f'value shape[2] of {value.shape[2]} invalid, needs to be {self.head_dim}'
 
@@ -290,37 +301,33 @@ class HopfieldCore(Module):
 
         if not self._qkv_same_embed_dim:
             return hopfield_core_forward(
-                query, key, value, embed_dim_to_check, self.num_heads,
-                self.in_proj_weight, self.in_proj_bias,
-                self.bias_k, self.bias_v, self.add_zero_attn,
-                self.dropout, out_weights, out_bias,
-                training=self.training,
-                key_padding_mask=key_padding_mask, need_weights=need_weights,
-                attn_mask=attn_mask, use_separate_proj_weight=True,
-                q_proj_weight=self.q_proj_weight, k_proj_weight=self.k_proj_weight,
+                query=query, key=key, value=value, embed_dim_to_check=embed_dim_to_check, num_heads=self.num_heads,
+                in_proj_weight=self.in_proj_weight, in_proj_bias=self.in_proj_bias, bias_k=self.bias_k,
+                bias_v=self.bias_v, add_zero_attn=self.add_zero_attn, dropout_p=self.dropout,
+                out_proj_weight=out_weights, out_proj_bias=out_bias, training=self.training,
+                key_padding_mask=key_padding_mask, need_weights=need_weights, attn_mask=attn_mask,
+                use_separate_proj_weight=True, q_proj_weight=self.q_proj_weight, k_proj_weight=self.k_proj_weight,
                 v_proj_weight=self.v_proj_weight,
 
                 key_as_static=self.key_as_static, query_as_static=self.query_as_static,
                 value_as_static=self.value_as_static, value_as_connected=self.value_as_connected,
                 normalize_pattern=self.normalize_pattern,
                 p_norm_weight=self.p_norm_weight, p_norm_bias=self.p_norm_bias,
-                head_dim=head_dim, scaling=scaling,
+                head_dim=head_dim, pattern_dim=self.pattern_dim, scaling=scaling,
                 update_steps_max=update_steps_max, update_steps_eps=update_steps_eps,
                 return_raw_associations=return_raw_associations, return_projected_patterns=return_pattern_projections)
         else:
             return hopfield_core_forward(
-                query, key, value, embed_dim_to_check, self.num_heads,
-                self.in_proj_weight, self.in_proj_bias,
-                self.bias_k, self.bias_v, self.add_zero_attn,
-                self.dropout, out_weights, out_bias,
-                training=self.training,
-                key_padding_mask=key_padding_mask, need_weights=need_weights,
-                attn_mask=attn_mask,
+                query=query, key=key, value=value, embed_dim_to_check=embed_dim_to_check, num_heads=self.num_heads,
+                in_proj_weight=self.in_proj_weight, in_proj_bias=self.in_proj_bias, bias_k=self.bias_k,
+                bias_v=self.bias_v, add_zero_attn=self.add_zero_attn, dropout_p=self.dropout,
+                out_proj_weight=out_weights, out_proj_bias=out_bias, training=self.training,
+                key_padding_mask=key_padding_mask, need_weights=need_weights, attn_mask=attn_mask,
 
                 key_as_static=self.key_as_static, query_as_static=self.query_as_static,
                 value_as_static=self.value_as_static, value_as_connected=self.value_as_connected,
                 normalize_pattern=self.normalize_pattern,
                 p_norm_weight=self.p_norm_weight, p_norm_bias=self.p_norm_bias,
-                head_dim=head_dim, scaling=scaling,
+                head_dim=head_dim, pattern_dim=self.pattern_dim, scaling=scaling,
                 update_steps_max=update_steps_max, update_steps_eps=update_steps_eps,
                 return_raw_associations=return_raw_associations, return_projected_patterns=return_pattern_projections)
