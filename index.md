@@ -645,9 +645,9 @@ the Hopfield layer.
 
 {% highlight python %}
 hopfield_lookup = HopfieldLayer(
-    input_size=3,                           # Y
-    hidden_size=3,                          # R
-    quantity=4,
+    input_size=3,                           # R
+    hidden_size=3,                          # W_K
+    quantity=4,                             # W_K
     scaling=beta,
     lookup_weights_as_separated=True,
     lookup_targets_as_trainable=False,
