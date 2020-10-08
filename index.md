@@ -609,6 +609,57 @@ hopfield((Y, R, Y))
 
 {% endhighlight %}
 
+### Hopfield Lookup
+
+A variant of our Hopfield-based modules is one which employs a **trainable but input independent
+lookup mechanism.** Internally, one or multiple **stored patterns and pattern projections
+are trained** (optionally in a non-shared manner), which in turn are used as a lookup mechanism
+independent of the input data.
+
+{:refdef: style="text-align: center;"}
+![not found](/assets/hf_layer.svg){:width="800px"}
+{: refdef}
+
+{% highlight python %}
+hopfield_lookup = HopfieldLayer(
+    input_size=3,                           # R
+    hidden_size=3,                          # W_K
+    pattern_size=4,                         # W_V
+    quantity=4,                             # W_K
+    scaling=beta,
+    stored_pattern_as_static=True,
+    state_pattern_as_static=True,
+    pattern_projection_as_connected=False)  # Eq. (32)
+
+# state pattern
+hopfield_lookup(R)
+{% endhighlight %}
+
+This specialized variant of the Hopfield layer allows for a setting, where the training data is used
+as stored patterns, the new data as state pattern, and the training label to project the output of
+the Hopfield layer.
+
+{:refdef: style="text-align: center;"}
+![not found](/assets/hf_layer_2.svg){:width="800px"}
+{: refdef}
+
+{% highlight python %}
+hopfield_lookup = HopfieldLayer(
+    input_size=3,                           # Y
+    hidden_size=3,                          # R
+    quantity=4,
+    scaling=beta,
+    lookup_weights_as_separated=True,
+    lookup_targets_as_trainable=False,
+    stored_pattern_as_static=True,
+    state_pattern_as_static=True,
+    pattern_projection_as_static=True,
+    pattern_projection_as_connected=False)  # Eq. (32)
+
+# state pattern
+hopfield_lookup(R)
+{% endhighlight %}
+
 ### Hopfield Pooling
 
 We consider the Hopfield layer as a pooling layer if only one static state pattern (query) exists. Then, it is de facto a **pooling over the sequence**.
