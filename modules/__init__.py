@@ -699,10 +699,12 @@ class HopfieldLayer(Module):
         self._quantity = quantity
         lookup_weight_size = self.hopfield.hidden_size if stored_pattern_as_static else self.hopfield.stored_pattern_dim
         self.lookup_weights = nn.Parameter(torch.empty(size=(*(
-            (1, quantity) if batch_first else (quantity, 1)), lookup_weight_size)), requires_grad=trainable)
+            (1, quantity) if batch_first else (quantity, 1)
+        ), input_size if lookup_weight_size is None else lookup_weight_size)), requires_grad=trainable)
 
         if lookup_weights_as_separated:
-            target_weight_size = self.hopfield.pattern_projection_dim
+            target_weight_size = self.lookup_weights.shape[
+                2] if pattern_projection_size is None else pattern_projection_size
             self.target_weights = nn.Parameter(torch.empty(size=(*(
                 (1, quantity) if batch_first else (quantity, 1)
             ), target_weight_size)), requires_grad=lookup_targets_as_trainable)
