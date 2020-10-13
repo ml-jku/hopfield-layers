@@ -432,7 +432,8 @@ class HopfieldPooling(Module):
         self._quantity = quantity
         pooling_weight_size = self.hopfield.hidden_size if state_pattern_as_static else self.hopfield.input_size
         self.pooling_weights = nn.Parameter(torch.empty(size=(*(
-            (1, quantity) if batch_first else (quantity, 1)), pooling_weight_size)), requires_grad=trainable)
+            (1, quantity) if batch_first else (quantity, 1)
+        ), input_size if pooling_weight_size is None else pooling_weight_size)), requires_grad=trainable)
         self._reset_parameters()
 
     def _reset_parameters(self) -> None:
