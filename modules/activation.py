@@ -293,7 +293,7 @@ class HopfieldCore(Module):
         assert any((
             not self.value_as_static, self.value_as_static and value.shape[2] == self.pattern_dim,
             self.disable_out_projection)
-        ), f'value shape[2] of {value.shape[2]} invalid, needs to be {self.head_dim}'
+        ), f'value shape[2] of {value.shape[2]} invalid, needs to be {self.pattern_dim}'
 
         out_weights, out_bias = None, None
         if not self.disable_out_projection:

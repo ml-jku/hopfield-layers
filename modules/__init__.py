@@ -653,7 +653,7 @@ class HopfieldLayer(Module):
         :param update_steps_max: maximum count of association update steps (None equals to infinity)
         :param update_steps_eps: minimum difference threshold between two consecutive association update steps
         :param lookup_weights_as_separated: separate lookup weights from lookup target weights
-        :param trainable_lookup_targets: employ trainable lookup target weights (used as pattern projection input)
+        :param lookup_targets_as_trainable: employ trainable lookup target weights (used as pattern projection input)
         :param normalize_stored_pattern: apply normalization on stored patterns
         :param normalize_stored_pattern_affine: additionally enable affine normalization of stored patterns
         :param normalize_state_pattern: apply normalization on state patterns

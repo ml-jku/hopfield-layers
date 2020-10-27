@@ -294,7 +294,7 @@ def hopfield_core_forward(query,                           # type: Tensor
                     len1, len2 = v_proj_weight_non_opt.size()
                     assert len1 == (num_heads * pattern_dim) and len2 == v.size(-1)
                     if in_proj_bias is not None:
-                        v = nn.functional.linear(v, v_proj_weight_non_opt, in_proj_bias[_start:_end])
+                        v = nn.functional.linear(v, v_proj_weight_non_opt, in_proj_bias[_start:])
                     else:
                         v = nn.functional.linear(v, v_proj_weight_non_opt, in_proj_bias)
 
