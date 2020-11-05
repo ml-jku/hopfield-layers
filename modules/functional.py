@@ -335,9 +335,9 @@ def hopfield_core_forward(query,                           # type: Tensor
 
         # Optionally scale association heads (each head separately).
         if type(scaling) == float:
-            q *= scaling
+            q = q * scaling
         elif type(scaling) == torch.Tensor:
-            q *= scaling.unsqueeze(axis=1).repeat(repeats=(bsz, head_dim))
+            q = q * scaling.view(1, 1, -1).repeat(repeats=(1, 1, q.shape[2] // scaling.shape[0]))
 
         if update_step == 0:
             # convert ByteTensor key_padding_mask to bool
