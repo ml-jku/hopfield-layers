@@ -507,9 +507,9 @@ which is the fundament of our new PyTorch Hopfield layer.
 ## Versatile Hopfield layers (beyond self-attention)
 
 The insights stemming from our work on modern Hopfield Networks allowed us to introduce new [PyTorch Hopfield layers][github-repo], which can be used as plug-in replacement for existing layers as well as for applications like multiple instance learning, set-based and permutation invariant learning, associative learning, and many more. We introduce three types of Hopfield layers:
-- <code>Hopfield</code> for associating and processing two sets.
-- <code>HopfieldPooling</code> for fixed pattern search, pooling operations, and memories like LSTMs or GRUs.
-- <code>HopfieldLayer</code> for storing fixed patterns or learning internal prototypes.
+- <code>Hopfield</code> for associating and processing two sets. Examples are the transformer attention, which associates keys and queries, and two point sets that have to be compared.
+- <code>HopfieldPooling</code> for fixed pattern search, pooling operations, and memories like LSTMs or GRUs. The state (query) pattern is static and can be learned.
+- <code>HopfieldLayer</code> for storing fixed patterns or learning internal prototypes. The stored (key) patterns are static and can be learned.
 
 Additional functionalities of the new PyTorch Hopfield layers compared to the transformer (self-)attention layer are:
 - **Association of two sets**
@@ -612,7 +612,7 @@ hopfield((Y, R, Y))
 
 {% endhighlight %}
 
-### Hopfield Lookup via <code>HopfieldLayer</code>
+### Hopfield Lookup via _HopfieldLayer_
 
 A variant of our Hopfield-based modules is one which employs a **trainable but input independent
 lookup mechanism.** Internally, one or multiple **stored patterns and pattern projections
