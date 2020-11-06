@@ -504,11 +504,14 @@ which is the fundament of our new PyTorch Hopfield layer.
 
 
 
-## Versatile Hopfield layer (beyond self-attention)
+## Versatile Hopfield layers (beyond self-attention)
 
-The insights stemming from our work on modern Hopfield Networks allowed us to introduce a new [PyTorch Hopfield layer][github-repo], which can be used as plug-in replacement for existing layers as well as for applications like multiple instance learning, set-based and permutation invariant learning, associative learning, and many more.
+The insights stemming from our work on modern Hopfield Networks allowed us to introduce new [PyTorch Hopfield layers][github-repo], which can be used as plug-in replacement for existing layers as well as for applications like multiple instance learning, set-based and permutation invariant learning, associative learning, and many more. We introduce three types of Hopfield layers:
+- <code>Hopfield</code> for associating and processing two sets.
+- <code>HopfieldPooling</code> for fixed pattern search, pooling operations, and memories like LSTMs or GRUs.
+- <code>HopfieldLayer</code> for storing fixed patterns or learning internal prototypes.
 
-Additional functionalities of the new PyTorch Hopfield layer compared to the transformer (self-)attention layer are:
+Additional functionalities of the new PyTorch Hopfield layers compared to the transformer (self-)attention layer are:
 - **Association of two sets**
 - **Variable** $$\beta$$ that determines the kind of fixed points
 - **Multiple updates** for precise fixed points
@@ -516,16 +519,16 @@ Additional functionalities of the new PyTorch Hopfield layer compared to the tra
 - **Static patterns** for fixed pattern search
 - **Pattern normalization** to control the fixed point dynamics by norm and shift of the patterns
 
-A sketch of the new Hopfield layer is provided below.
+A sketch of the new Hopfield layers is provided below.
 
 {:refdef: style="text-align: center;"}
 ![not found](/assets/hopf_layer.png){:width="500px"}
 {: refdef}
 
 
-Next, we introduce the underlying mechanisms of the implementation. Based on these underlying mechanisms, we give two examples on how to use the new Hopfield layer and how to utilize the principles of modern Hopfield Networks.
+Next, we introduce the underlying mechanisms of the implementation. Based on these underlying mechanisms, we give three examples on how to use the new Hopfield layers and how to utilize the principles of modern Hopfield Networks.
 
-### Hopfield Layer
+### Hopfield
 
 In its most general form, the result patterns $$\boldsymbol{Z}$$ are a function of raw stored patterns $$\boldsymbol{Y}$$, raw state patterns $$\boldsymbol{R}$$, and projection matrices $$\boldsymbol{W}_Q$$, $$\boldsymbol{W}_K$$, $$\boldsymbol{W}_V$$:
 
@@ -609,7 +612,7 @@ hopfield((Y, R, Y))
 
 {% endhighlight %}
 
-### Hopfield Lookup
+### Hopfield Lookup via <code>HopfieldLayer</code>
 
 A variant of our Hopfield-based modules is one which employs a **trainable but input independent
 lookup mechanism.** Internally, one or multiple **stored patterns and pattern projections
