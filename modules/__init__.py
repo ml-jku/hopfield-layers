@@ -141,9 +141,10 @@ class Hopfield(Module):
 
         :return: None
         """
-        for parameter in self.parameters():
-            if hasattr(parameter, r'reset_parameters'):
-                parameter.reset_parameters()
+        for module in (self.association_core, self.norm_stored_pattern,
+                       self.norm_state_pattern, self.norm_pattern_projection):
+            if hasattr(module, r'reset_parameters'):
+                module.reset_parameters()
 
     def _maybe_transpose(self, *args: Tuple[Tensor, ...]) -> Union[Tensor, Tuple[Tensor, ...]]:
         """
@@ -453,9 +454,8 @@ class HopfieldPooling(Module):
 
         :return: None
         """
-        for parameter in self.parameters():
-            if hasattr(parameter, r'reset_parameters'):
-                parameter.reset_parameters()
+        if hasattr(self.hopfield, r'reset_parameters'):
+            self.hopfield.reset_parameters()
 
         # Explicitly initialise pooling weights.
         nn.init.normal_(self.pooling_weights, mean=0.0, std=0.02)
@@ -735,9 +735,8 @@ class HopfieldLayer(Module):
 
         :return: None
         """
-        for parameter in self.parameters():
-            if hasattr(parameter, r'reset_parameters'):
-                parameter.reset_parameters()
+        if hasattr(self.hopfield, r'reset_parameters'):
+            self.hopfield.reset_parameters()
 
         # Explicitly initialise lookup and target weights.
         nn.init.normal_(self.lookup_weights, mean=0.0, std=0.02)

@@ -50,9 +50,10 @@ class HopfieldEncoderLayer(Module):
 
         :return: None
         """
-        for parameter in self.parameters():
-            if hasattr(parameter, r'reset_parameters'):
-                parameter.reset_parameters()
+        for module in (self.hopfield_association, self.linear_residual,
+                       self.linear_output, self.norm_residual, self.norm_output):
+            if hasattr(module, r'reset_parameters'):
+                module.reset_parameters()
 
     def forward(self, src: Tensor, src_mask: Optional[Tensor] = None,
                 src_key_padding_mask: Optional[Tensor] = None) -> Tensor:
@@ -140,9 +141,11 @@ class HopfieldDecoderLayer(Module):
 
         :return: None
         """
-        for parameter in self.parameters():
-            if hasattr(parameter, r'reset_parameters'):
-                parameter.reset_parameters()
+        for module in (self.hopfield_association_self, self.hopfield_association_cross,
+                       self.linear_residual, self.linear_output, self.norm_residual_self,
+                       self.norm_residual_cross, self.norm_output):
+            if hasattr(module, r'reset_parameters'):
+                module.reset_parameters()
 
     def forward(self, tgt: Tensor, memory: Tensor, tgt_mask: Optional[Tensor] = None,
                 memory_mask: Optional[Tensor] = None, tgt_key_padding_mask: Optional[Tensor] = None,
