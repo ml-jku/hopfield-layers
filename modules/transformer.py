@@ -42,6 +42,17 @@ class HopfieldEncoderLayer(Module):
 
         self.activation_residual = getattr(torch, activation, None)
         assert self.activation_residual is not None, r'invalid activation function supplied.'
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        """
+        Reset parameters, including Hopfield association.
+
+        :return: None
+        """
+        for parameter in self.parameters():
+            if hasattr(parameter, r'reset_parameters'):
+                parameter.reset_parameters()
 
     def forward(self, src: Tensor, src_mask: Optional[Tensor] = None,
                 src_key_padding_mask: Optional[Tensor] = None) -> Tensor:
@@ -121,6 +132,17 @@ class HopfieldDecoderLayer(Module):
 
         self.activation_residual = getattr(torch, activation, None)
         assert self.activation_residual is not None, r'invalid activation function supplied.'
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        """
+        Reset parameters, including Hopfield association.
+
+        :return: None
+        """
+        for parameter in self.parameters():
+            if hasattr(parameter, r'reset_parameters'):
+                parameter.reset_parameters()
 
     def forward(self, tgt: Tensor, memory: Tensor, tgt_mask: Optional[Tensor] = None,
                 memory_mask: Optional[Tensor] = None, tgt_key_padding_mask: Optional[Tensor] = None,

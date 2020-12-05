@@ -133,6 +133,17 @@ class Hopfield(Module):
         self.__batch_first = batch_first
         self.__update_steps_max = update_steps_max
         self.__update_steps_eps = update_steps_eps
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        """
+        Reset Hopfield association.
+
+        :return: None
+        """
+        for parameter in self.parameters():
+            if hasattr(parameter, r'reset_parameters'):
+                parameter.reset_parameters()
 
     def _maybe_transpose(self, *args: Tuple[Tensor, ...]) -> Union[Tensor, Tuple[Tensor, ...]]:
         """
@@ -434,14 +445,19 @@ class HopfieldPooling(Module):
         self.pooling_weights = nn.Parameter(torch.empty(size=(*(
             (1, quantity) if batch_first else (quantity, 1)
         ), input_size if pooling_weight_size is None else pooling_weight_size)), requires_grad=trainable)
-        self._reset_parameters()
+        self.reset_parameters()
 
-    def _reset_parameters(self) -> None:
+    def reset_parameters(self) -> None:
         """
-        Reset pooling weights.
+        Reset pooling weights and underlying Hopfield association.
 
         :return: None
         """
+        for parameter in self.parameters():
+            if hasattr(parameter, r'reset_parameters'):
+                parameter.reset_parameters()
+
+        # Explicitly initialise pooling weights.
         nn.init.normal_(self.pooling_weights, mean=0.0, std=0.02)
 
     def _prepare_input(self, input: Union[Tensor, Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor, Tensor]:
@@ -711,14 +727,19 @@ class HopfieldLayer(Module):
             ), target_weight_size)), requires_grad=lookup_targets_as_trainable)
         else:
             self.register_parameter(name=r'target_weights', param=None)
-        self._reset_parameters()
+        self.reset_parameters()
 
-    def _reset_parameters(self) -> None:
+    def reset_parameters(self) -> None:
         """
-        Reset lookup and lookup target weights.
+        Reset lookup and lookup target weights, including underlying Hopfield association.
 
         :return: None
         """
+        for parameter in self.parameters():
+            if hasattr(parameter, r'reset_parameters'):
+                parameter.reset_parameters()
+
+        # Explicitly initialise lookup and target weights.
         nn.init.normal_(self.lookup_weights, mean=0.0, std=0.02)
         if self.target_weights is not None:
             nn.init.normal_(self.target_weights, mean=0.0, std=0.02)

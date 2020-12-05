@@ -172,7 +172,7 @@ class HopfieldCore(Module):
             assert not (self.bias_k is None and self.bias_v is None), r'cannot set key/value bias if both are static.'
 
         self.add_zero_attn = add_zero_attn
-        self._reset_parameters()
+        self.reset_parameters()
 
     def _check_execution_mode(self) -> bool:
         return all((
@@ -180,7 +180,7 @@ class HopfieldCore(Module):
             not self.normalize_pattern, not self.normalize_pattern_affine, self.disable_out_projection
         ))
 
-    def _reset_parameters(self):
+    def reset_parameters(self):
         if self.p_norm_weight is not None:
             nn.init.ones_(self.p_norm_weight)
             nn.init.zeros_(self.p_norm_bias)
@@ -197,8 +197,9 @@ class HopfieldCore(Module):
 
         if self.in_proj_bias is not None:
             nn.init.constant_(self.in_proj_bias, 0.0)
-            if not self.disable_out_projection:
-                nn.init.constant_(self.out_proj.bias, 0.0)
+        if not self.disable_out_projection:
+            nn.init.normal_(self.out_proj.weight, mean=0.0, std=0.02)
+            nn.init.constant_(self.out_proj.bias, 0.0)
         if self.bias_k is not None:
             nn.init.normal_(self.bias_k, mean=0.0, std=0.02)
         if self.bias_v is not None:
