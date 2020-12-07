@@ -8,29 +8,50 @@ usemathjax: true
 
 This blog post explains the paper [Hopfield Networks is All You Need][arxiv-paper] and the corresponding new PyTorch [Hopfield layer][github-repo].
 
-## Main contributions
+# Table of Contents
+1. [Main contributions](#introduction)
+2. [What this blog post is about](#about)
+3. [From classical Hopfield Networks to self-attention](#selfatt)
+    1. [Hopfield Networks](#hfnetworks)
+    2. [Modern Hopfield Networks](#mhfnetworks)
+    3. [New energy function for continuous-valued patterns and states](#energy)
+    4. [The update of the new energy function is the self-attention of transformer networks](#update)
+4. [Hopfield layers for Deep Learning architectures](#beyond)
+    1. [Layer _Hopfield_](#LayerHF)
+    2. [Layer _HopfieldLayer_](#LayerHFR)
+    3. [Hopfield Lookup via _HopfieldLayer_](#LayerHFLookup)
+    4. [Layer _HopfieldPooling_](#LayerHFPooling)
+5. [DeepRC](#deeprc)
+6. [Material](#material)
+7. [Correspondence](#correspondence)
+
+
+## Main contributions <a name="introduction"></a>
 We introduce a new energy function and a corresponding new update rule which is guaranteed to converge to a local minimum of the energy function.
+
 
 The new energy function is a generalization (discrete states $$\Rightarrow$$ continuous states) of **modern Hopfield Networks** aka **Dense Associative Memories** introduced by [Krotov and Hopfield][krotov-paper] and [Demircigil et al.][demircigil-paper]
 The new modern Hopfield Network with continuous states keeps the characteristics of its discrete counterparts:
 - exponential storage capacity
 - extremely fast convergence
 
+Due to its continuous states this new modern Hopfield Network is differentiable and can be integrated into deep learning architectures. Typically patterns are retrieved after one update which is compatible with activating the layers of deep networks. This enables an abundance of **new deep learning architectures**. Three useful types of Hopfield layers are provided. 
+
 Surprisingly, the new update rule is the attention mechanism of transformer networks introduced in [Attention Is All You Need][vaswani-paper].
 We use these new insights to analyze transformer models in the paper. 
 
 
-## What this blog post is about
+## What this blog post is about <a name="about"></a>
 
 This blog post is split into three parts. First, we make the transition from traditional Hopfield Networks towards **modern Hopfield Networks** and their generalization to continuous states through our **new energy function**. Second, the properties of our new energy function and the connection to the self-attention mechanism of transformer networks is shown. Finally, we introduce and explain a new PyTorch layer ([Hopfield layer][github-repo]), which is built on the insights of our work. We show several practical use cases, i.e. [Modern Hopfield Networks and Attention for Immune Repertoire Classification][deepRC-paper], Hopfield pooling, and associations of two sets.
 
-## From classical Hopfield Networks to self-attention
+## From classical Hopfield Networks to self-attention <a name="selfatt"></a>
 
 **Associative memories** are one of the earliest artificial neural models dating back to the 1960s and 1970s. Best known are [Hopfield Networks][hopfield-paper], presented by John Hopfield in 1982.
 As the name suggests, the main purpose of associative memory networks is to associate an input with its most similar pattern. In other words, the purpose is to store and retrieve patterns.
 We start with a review of classical Hopfield Networks. 
 
-### Hopfield Networks
+### Hopfield Networks <a name="hfnetworks"></a>
 
 The simplest associative memory is just a **sum of outer products** of the $$N$$ patterns $$\{\boldsymbol{x}_i\}_{i=1}^N$$ that we want to store (Hebbian learning rule). In classical Hopfield Networks these patterns are polar (binary), i.e. $$\boldsymbol{x}_i \in \{ -1,1 \}^d$$, where $$d$$ is the length of the patterns. The corresponding weight matrix $$\boldsymbol{W}$$ is:
 
@@ -199,7 +220,7 @@ for retrieval of patterns with a small percentage of errors was observed. The ra
 
 ---
 
-### Modern Hopfield Networks (aka Dense Associative Memories)
+### Modern Hopfield Networks (aka Dense Associative Memories) <a name="mhfnetworks"></a>
 
 The storage capacity is a crucial characteristic of Hopfield Networks. **Modern Hopfield Networks** (aka Dense Associative Memories) introduce a new energy function instead of the energy in Eq. \eqref{eq:energy_hopfield} to create a higher storage capacity. **Discrete** modern Hopfield Networks have been introduced first by [Krotov and Hopfield][krotov-paper] and then generalized by [Demircigil et al][demircigil-paper]:
 - [Krotov and Hopfield][krotov-paper] introduced the energy function:
@@ -321,7 +342,7 @@ Compared to the traditional Hopfield Networks, the **increased storage capacity 
 
 
 
-### New energy function for continuous-valued patterns and states
+### New energy function for continuous-valued patterns and states <a name="energy"></a>
 
 We generalize the energy function of Eq. \eqref{eq:energy_demircigil2} to continuous-valued patterns. We use the logarithm of the negative energy Eq. \eqref{eq:energy_demircigil2} and add a quadratic term. The quadratic term ensures that the norm of the state $$\boldsymbol{\xi}$$ remains finite. The **new energy function** is defined as: 
 
@@ -415,7 +436,7 @@ To make this more explicit, we have a closer look how the results are changing i
 
 <br>
 
-### The update of the new energy function is the self-attention of transformer networks
+### The update of the new energy function is the self-attention of transformer networks <a name="update"></a>
 
 Starting with Eq. \eqref{eq:update_sepp3}, and
 1. generalizing the new update rule to multiple patterns at once,
@@ -504,12 +525,21 @@ which is the fundament of our new PyTorch Hopfield layer.
 
 
 
-## Versatile Hopfield layers (beyond self-attention)
+## Hopfield layers for Deep Learning architectures <a name="beyond"></a>
 
 The insights stemming from our work on modern Hopfield Networks allowed us to introduce new [PyTorch Hopfield layers][github-repo], which can be used as plug-in replacement for existing layers as well as for applications like multiple instance learning, set-based and permutation invariant learning, associative learning, and many more. We introduce three types of Hopfield layers:
 - <code>Hopfield</code> for associating and processing two sets. Examples are the transformer attention, which associates keys and queries, and two point sets that have to be compared.
 - <code>HopfieldPooling</code> for fixed pattern search, pooling operations, and memories like LSTMs or GRUs. The state (query) pattern is static and can be learned.
 - <code>HopfieldLayer</code> for storing fixed patterns or learning internal prototypes. The stored (key) patterns are static and can be learned.
+
+
+Due to their continuous nature Hopfield layers are differentiable and can be integrated into deep learning architectures to equip their layers with associative memories. On the left side of the Figure below a standard deep network is depicted. It propagates either a vector or a set of vectors from input to output. On the right side a deep network is depicted, where layers are equipped with associative memories via Hopfield layers. A detailed description of the layers is given below. 
+
+{:refdef: style="text-align: center;"}
+![not found](/assets/NNlayers.svg){:width="500px"}
+{: refdef}
+
+
 
 Additional functionalities of the new PyTorch Hopfield layers compared to the transformer (self-)attention layer are:
 - **Association of two sets**
@@ -528,7 +558,7 @@ A sketch of the new Hopfield layers is provided below.
 
 Next, we introduce the underlying mechanisms of the implementation. Based on these underlying mechanisms, we give three examples on how to use the new Hopfield layers and how to utilize the principles of modern Hopfield Networks.
 
-### Hopfield
+### Layer *Hopfield* <a name="LayerHF"></a> 
 
 In its most general form, the result patterns $$\boldsymbol{Z}$$ are a function of raw stored patterns $$\boldsymbol{Y}$$, raw state patterns $$\boldsymbol{R}$$, and projection matrices $$\boldsymbol{W}_Q$$, $$\boldsymbol{W}_K$$, $$\boldsymbol{W}_V$$:
 
@@ -555,10 +585,18 @@ To provide the Hopfield layer with more flexibility, the matrix product $$\bolds
 In Eq. \eqref{eq:Hopfield_1}, the $$N$$ raw stored patterns $$\boldsymbol{Y}=(\boldsymbol{y}_1,\ldots,\boldsymbol{y}_N)^T$$ and the $$S$$ raw state patterns $$\boldsymbol{R}=(\boldsymbol{r}_1,\ldots,\boldsymbol{r}_S)^T$$ are mapped to an associative space via the matrices $$\boldsymbol{W}_K$$ and $$\boldsymbol{W}_Q$$.
 We also allow **static state** and **static stored patterns**. A static pattern means that it does not depend on the network input, i.e. it is determined by the bias weights and remains constant across different network inputs.
 
+---
+**Remark**
+
+For simplicity from now on we replace $$\boldsymbol{W}_K \boldsymbol{W}_V $$ by just $$\boldsymbol{W}_V$$.
+
+---
+
+
 An illustration of the matrices of Eq. \eqref{eq:Hopfield_1} is shown below:
 
 {:refdef: style="text-align: center;"}
-![not found](/assets/eq31_24.svg){:width="800px"}
+![not found](/assets/HopfieldLayer.svg){:width="800px"}
 {: refdef}
 
 Note that in this simplified sketch $$\boldsymbol{W}_V$$ already contains the output projection.
@@ -572,19 +610,18 @@ hopfield = Hopfield(
     hidden_size=3,
     stored_pattern_size=4,                 # Y
     pattern_projection_size=4,             # Y
-    scaling=beta,
-    pattern_projection_as_connected=True)  # Eq. (32)
+    scaling=beta)                          
 
 # tuple of stored_pattern, state_pattern, pattern_projection
 hopfield((Y, R, Y))
 {% endhighlight %}
 
-### Hopfield Retrieval
+### Layer *HopfieldLayer* <a name="LayerHFR"></a>
 
 Of course we can also use the new Hopfield layer to solve the pattern retrieval task from above. For this task no trainable weights are needed.
 
 {:refdef: style="text-align: center;"}
-![not found](/assets/retrieve_homer.svg){:width="800px"}
+![not found](/assets/HopfieldRetrieval_homer.svg){:width="800px"}
 {: refdef}
 
 {% highlight python %}
@@ -612,7 +649,7 @@ hopfield((Y, R, Y))
 
 {% endhighlight %}
 
-### Hopfield Lookup via _HopfieldLayer_
+### Hopfield Lookup via _HopfieldLayer_ <a name="LayerHFLookup"></a>
 
 A variant of our Hopfield-based modules is one which employs a **trainable but input independent
 lookup mechanism.** Internally, one or multiple **stored patterns and pattern projections
@@ -620,7 +657,7 @@ are trained** (optionally in a non-shared manner), which in turn are used as a l
 independent of the input data.
 
 {:refdef: style="text-align: center;"}
-![not found](/assets/hf_layer.svg){:width="800px"}
+![not found](/assets/LayerHopfieldLayer.svg){:width="800px"}
 {: refdef}
 
 {% highlight python %}
@@ -631,8 +668,7 @@ hopfield_lookup = HopfieldLayer(
     quantity=4,                             # W_K
     scaling=beta,
     stored_pattern_as_static=True,
-    state_pattern_as_static=True,
-    pattern_projection_as_connected=False)  # Eq. (32)
+    state_pattern_as_static=True)           
 
 # state pattern
 hopfield_lookup(R)
@@ -642,9 +678,11 @@ This specialized variant of the Hopfield layer allows for a setting, where the t
 as stored patterns, the new data as state pattern, and the training label to project the output of
 the Hopfield layer.
 
-{:refdef: style="text-align: center;"}
-![not found](/assets/hf_layer_2.svg){:width="800px"}
-{: refdef}
+
+[//]: # ( COMMENTED OUT: hf_layer_2 )
+[//]: # ( {:refdef: style="text-align: center;"} )
+[//]: # ( ![not found](/assets/hf_layer_2.svg){:width="800px"} )
+[//]: # ( {: refdef} )
 
 {% highlight python %}
 hopfield_lookup = HopfieldLayer(
@@ -656,21 +694,27 @@ hopfield_lookup = HopfieldLayer(
     lookup_targets_as_trainable=False,
     stored_pattern_as_static=True,
     state_pattern_as_static=True,
-    pattern_projection_as_static=True,
-    pattern_projection_as_connected=False)  # Eq. (32)
+    pattern_projection_as_static=True)      
 
 # state pattern
 hopfield_lookup(R)
 {% endhighlight %}
 
-### Hopfield Pooling
+### Layer *HopfieldPooling* <a name="LayerHFPooling"></a>
 
 We consider the Hopfield layer as a pooling layer if only one static state pattern (query) exists. Then, it is de facto a **pooling over the sequence**.
 The static state pattern is considered as a **prototype pattern** and consequently learned in the Hopfield pooling layer.
 Below we give two examples of a Hopfield pooling over the stored patterns $$\boldsymbol{Y}$$. Note that the pooling always operates over the token dimension (i.e. the sequence length), and not the token embedding dimension.
 
+
+[//]: # ( COMMENTED OUT: eq31_24_pool )
+[//]: # ({:refdef: style="text-align: center;"} )
+[//]: # (![not found](/assets/eq31_24_pool.svg){:width="800px"})
+[//]: # ({: refdef})
+
+
 {:refdef: style="text-align: center;"}
-![not found](/assets/eq31_24_pool.svg){:width="800px"}
+![not found](/assets/HopfieldPooling1.svg){:width="800px"}
 {: refdef}
 
 {% highlight python %}
@@ -678,18 +722,24 @@ hopfield_pooling = HopfieldPooling(
     input_size=4,                          # Y
     hidden_size=3,                         # Q
     scaling=beta,
-    pattern_projection_as_connected=True)  # Eq. (32)
+    quantity=2)                            # number of state patterns
 
 # stored_pattern and pattern_projection
 hopfield_pooling(Y)
 {% endhighlight %}
 
-The pooling over the sequence is de facto done over the token dimension of the stored patterns, i.e. $$\boldsymbol{Y} \in \mathbb{R}^{(2 \times 4)} \Rightarrow \boldsymbol{Z} \in \mathbb{R}^{(1 \times 4)}$$.
+The pooling over the sequence is de facto done over the token dimension of the stored patterns, i.e. $$\boldsymbol{Y} \in \mathbb{R}^{(2 \times 4)} \Rightarrow \boldsymbol{Z} \in \mathbb{R}^{(2 \times 4)}$$.
 
-We show another example below, where the Hopfield pooling boils down to $$\boldsymbol{Y} \in \mathbb{R}^{(3 \times 5)} \Rightarrow \boldsymbol{Z} \in \mathbb{R}^{(1 \times 5)}$$:
+We show another example below, where the Hopfield pooling boils down to $$\boldsymbol{Y} \in \mathbb{R}^{(3 \times 5)} \Rightarrow \boldsymbol{Z} \in \mathbb{R}^{(2 \times 5)}$$:
+
+[//]: # ( COMMENTED OUT: eq31_35_pool )
+[//]: # ({:refdef: style="text-align: center;"})
+[//]: # (![not found](/assets/eq31_35_pool.svg){:width="800px"})
+[//]: # ({: refdef})
+
 
 {:refdef: style="text-align: center;"}
-![not found](/assets/eq31_35_pool.svg){:width="800px"}
+![not found](/assets/HopfieldPooling2.svg){:width="800px"}
 {: refdef}
 
 {% highlight python %}
@@ -697,13 +747,13 @@ hopfield_pooling = HopfieldPooling(
     input_siz=5,                           # Y
     hidden_size=3,                         # Q
     scaling=beta,
-    pattern_projection_as_connected=True)  # Eq. (32)
+    quantity=2)                            # number of state patterns
 
 # stored_pattern and pattern_projection
 hopfield_pooling(Y)
 {% endhighlight %}
 
-## DeepRC
+## DeepRC <a name="deeprc"></a>
 
 One SOTA application of modern Hopfield Networks can be found in the paper [Modern Hopfield Networks and Attention for Immune Repertoire Classification][deeprc-paper] by Widrich et al.
 Here, the high storage capacity of modern Hopfield Networks is exploited to solve a challenging [multiple instance learning (MIL)][dietterich-paper] problem in computational biology called **immune repertoire classification**.
@@ -800,7 +850,7 @@ hopfield((K, Q, Y))
 
 {% endhighlight %}
 
-## Material
+## Material <a name="material"></a>
 
 - [Paper: Hopfield Networks is All You Need][arxiv-paper]
 
@@ -812,7 +862,9 @@ hopfield((K, Q, Y))
 
 - [Yannic Kilcher's video on our two papers][kilcher-video]
 
-## Correspondence
+- [Blog post on Performers from a Hopfield point of view][performer-blog]
+
+## Correspondence <a name="correspondence"></a>
 
 This blog post was written by Johannes Brandstetter: brandstetter[at]ml.jku.at
 
@@ -844,3 +896,4 @@ Contributions by Viet Tran, Bernhard Schäfl, Hubert Ramsauer, Johannes Lehner, 
 [mora-paper]: https://www.sciencedirect.com/science/article/pii/S2452310019300289
 [klambauer-paper]: http://papers.nips.cc/paper/6698-self-normalizing-neural-networks.pdf
 [kilcher-video]: https://www.youtube.com/watch?v=nv6oFDp6rNQ
+[performer-blog]: https://ml-jku.github.io/blog-post-performer
