@@ -864,6 +864,8 @@ hopfield((K, Q, Y))
 
 - [Blog post on Performers from a Hopfield point of view][performer-blog]
 
+For more information visit our homepage [https://ml-jku.github.io/][ml-blog].
+
 ## Correspondence <a name="correspondence"></a>
 
 This blog post was written by Johannes Brandstetter: brandstetter[at]ml.jku.at
@@ -875,6 +877,7 @@ Contributions by Viet Tran, Bernhard Schäfl, Hubert Ramsauer, Johannes Lehner, 
 [jekyll-gh]:   https://github.com/jekyll/jekyll
 [jekyll-talk]: https://talk.jekyllrb.com/
 
+[ml-blog]: https://ml-jku.github.io/
 [arxiv-paper]: https://arxiv.org/abs/2008.02217
 [github-repo]: https://github.com/ml-jku/hopfield-layers
 [github-repo-deeprc]: https://github.com/ml-jku/DeepRC 
