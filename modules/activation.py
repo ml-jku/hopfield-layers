@@ -98,6 +98,8 @@ class HopfieldCore(Module):
         self.dropout = dropout
         self.head_dim = None
         self.pattern_dim = pattern_dim
+        self.virtual_hopfield_dim = None
+        self.virtual_pattern_dim = None
         if not self.static_execution:
             if head_dim is None:
                 self.head_dim = embed_dim // num_heads
@@ -107,8 +109,8 @@ class HopfieldCore(Module):
                 self.head_dim = head_dim
             if self.pattern_dim is None:
                 self.pattern_dim = self.head_dim
-        self.virtual_hopfield_dim = None if (self.head_dim is None) else (self.num_heads * self.head_dim)
-        self.virtual_pattern_dim = None if (self.pattern_dim is None) else (self.num_heads * self.pattern_dim)
+            self.virtual_hopfield_dim = self.num_heads * self.head_dim
+            self.virtual_pattern_dim = self.num_heads * self.pattern_dim
 
         self.out_dim = embed_dim if out_dim is None else out_dim
         assert disable_out_projection or (self.out_dim > 0), "output projection dimension has to be positive."
@@ -199,7 +201,8 @@ class HopfieldCore(Module):
             nn.init.constant_(self.in_proj_bias, 0.0)
         if not self.disable_out_projection:
             nn.init.normal_(self.out_proj.weight, mean=0.0, std=0.02)
-            nn.init.constant_(self.out_proj.bias, 0.0)
+            if self.out_proj.bias is not None:
+                nn.init.constant_(self.out_proj.bias, 0.0)
         if self.bias_k is not None:
             nn.init.normal_(self.bias_k, mean=0.0, std=0.02)
         if self.bias_v is not None:

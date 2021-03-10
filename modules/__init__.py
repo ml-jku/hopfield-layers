@@ -102,27 +102,29 @@ class Hopfield(Module):
         if normalize_stored_pattern_affine:
             assert normalize_stored_pattern, "affine normalization without normalization has no effect."
         if normalize_stored_pattern:
+            normalized_shape = input_size if stored_pattern_size is None else stored_pattern_size
+            assert normalized_shape is not None, "stored pattern size required for setting up normalisation"
             self.norm_stored_pattern = nn.LayerNorm(
-                normalized_shape=self.hidden_size if stored_pattern_as_static else self.association_core.kdim,
-                elementwise_affine=normalize_stored_pattern_affine)
+                normalized_shape=normalized_shape, elementwise_affine=normalize_stored_pattern_affine)
 
         # Initialise state pattern normalization.
         self.norm_state_pattern = None
         if normalize_state_pattern_affine:
             assert normalize_state_pattern, "affine normalization without normalization has no effect."
         if normalize_state_pattern:
+            assert input_size is not None, "input size required for setting up normalisation"
             self.norm_state_pattern = nn.LayerNorm(
-                normalized_shape=self.hidden_size if state_pattern_as_static else self.association_core.embed_dim,
-                elementwise_affine=normalize_state_pattern_affine)
+                normalized_shape=input_size, elementwise_affine=normalize_state_pattern_affine)
 
         # Initialise pattern projection normalization.
         self.norm_pattern_projection = None
         if normalize_pattern_projection_affine:
             assert normalize_pattern_projection, "affine normalization without normalization has no effect."
         if normalize_pattern_projection:
+            normalized_shape = input_size if pattern_projection_size is None else pattern_projection_size
+            assert normalized_shape is not None, "pattern projection size required for setting up normalisation"
             self.norm_pattern_projection = nn.LayerNorm(
-                normalized_shape=self.hidden_size if pattern_projection_as_static else self.association_core.vdim,
-                elementwise_affine=normalize_pattern_projection_affine)
+                normalized_shape=normalized_shape, elementwise_affine=normalize_pattern_projection_affine)
 
         # Initialise remaining auxiliary properties.
         if self.association_core.static_execution:
