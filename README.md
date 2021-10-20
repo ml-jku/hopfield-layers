@@ -63,6 +63,22 @@ The software was developed and tested on the following 64-bit operating systems:
 
 As the development environment, [Python](https://www.python.org) 3.8.3 in combination with [PyTorch](https://pytorch.org) 1.6.0 was used (a version of at least 1.5.0 should be sufficient). More details on how to install PyTorch are available on the [official project page](https://pytorch.org).
 
+## Installation
+
+The recommended way to install the software is to use `pip/pip3`:
+
+```bash
+$ pip3 install git+https://github.com/ml-jku/hopfield-layers
+```
+
+To successfully run the [Jupyter notebooks](https://jupyter.org) contained in [examples](examples/), additional third-party modules are needed:
+
+```bash
+$ pip3 install -r examples/requirements.txt
+```
+
+The installation of the [Jupyter software](https://jupyter.org/install.html) itself is not covered. More details on how to install Jupyter are available at the [official installation page](https://jupyter.org/install.html).
+
 ## Usage
 
 To get up and running with Hopfield-based networks, only <i>one</i> argument needs to be set, the size (depth) of the input.
