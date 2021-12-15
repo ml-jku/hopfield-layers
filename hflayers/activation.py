@@ -48,25 +48,26 @@ class HopfieldCore(Module):
     }
 
     def __init__(self,
-                 embed_dim=None,                 # type: Optional[int]
-                 num_heads=1,                    # type: int
-                 dropout=0.0,                    # type: float
-                 bias=True,                      # type: bool
-                 add_bias_kv=False,              # type: bool
-                 add_zero_attn=False,            # type: bool
-                 kdim=None,                      # type: Optional[int]
-                 vdim=None,                      # type: Optional[int]
+                 embed_dim=None,                  # type: Optional[int]
+                 num_heads=1,                     # type: int
+                 dropout=0.0,                     # type: float
+                 bias=True,                       # type: bool
+                 add_bias_kv=False,               # type: bool
+                 add_zero_attn=False,             # type: bool
+                 kdim=None,                       # type: Optional[int]
+                 vdim=None,                       # type: Optional[int]
 
-                 head_dim=None,                  # type: Optional[int]
-                 pattern_dim=None,               # type: Optional[int]
-                 out_dim=None,                   # type: Optional[int]
-                 disable_out_projection=False,   # type: bool
-                 key_as_static=False,            # type: bool
-                 query_as_static=False,          # type: bool
-                 value_as_static=False,          # type: bool
-                 value_as_connected=False,       # type: bool
-                 normalize_pattern=False,        # type: bool
-                 normalize_pattern_affine=False  # type: bool
+                 head_dim=None,                   # type: Optional[int]
+                 pattern_dim=None,                # type: Optional[int]
+                 out_dim=None,                    # type: Optional[int]
+                 disable_out_projection=False,    # type: bool
+                 key_as_static=False,             # type: bool
+                 query_as_static=False,           # type: bool
+                 value_as_static=False,           # type: bool
+                 value_as_connected=False,        # type: bool
+                 normalize_pattern=False,         # type: bool
+                 normalize_pattern_affine=False,  # type: bool
+                 normalize_pattern_eps=1e-5       # type: float
                  ):
         super(HopfieldCore, self).__init__()
 
@@ -77,6 +78,7 @@ class HopfieldCore(Module):
 
         self.value_as_connected = value_as_connected
         self.normalize_pattern, self.normalize_pattern_affine = normalize_pattern, normalize_pattern_affine
+        self.normalize_pattern_eps = normalize_pattern_eps
         self.disable_out_projection = disable_out_projection
 
         # In case of a static-only executions, check corresponding projections and normalizations.
@@ -315,7 +317,7 @@ class HopfieldCore(Module):
 
                 key_as_static=self.key_as_static, query_as_static=self.query_as_static,
                 value_as_static=self.value_as_static, value_as_connected=self.value_as_connected,
-                normalize_pattern=self.normalize_pattern,
+                normalize_pattern=self.normalize_pattern, normalize_pattern_eps=self.normalize_pattern_eps,
                 p_norm_weight=self.p_norm_weight, p_norm_bias=self.p_norm_bias,
                 head_dim=head_dim, pattern_dim=self.pattern_dim, scaling=scaling,
                 update_steps_max=update_steps_max, update_steps_eps=update_steps_eps,
@@ -330,7 +332,7 @@ class HopfieldCore(Module):
 
                 key_as_static=self.key_as_static, query_as_static=self.query_as_static,
                 value_as_static=self.value_as_static, value_as_connected=self.value_as_connected,
-                normalize_pattern=self.normalize_pattern,
+                normalize_pattern=self.normalize_pattern, normalize_pattern_eps=self.normalize_pattern_eps,
                 p_norm_weight=self.p_norm_weight, p_norm_bias=self.p_norm_bias,
                 head_dim=head_dim, pattern_dim=self.pattern_dim, scaling=scaling,
                 update_steps_max=update_steps_max, update_steps_eps=update_steps_eps,

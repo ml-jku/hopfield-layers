@@ -26,12 +26,16 @@ class Hopfield(Module):
 
                  normalize_stored_pattern: bool = True,
                  normalize_stored_pattern_affine: bool = True,
+                 normalize_stored_pattern_eps: float = 1e-5,
                  normalize_state_pattern: bool = True,
                  normalize_state_pattern_affine: bool = True,
+                 normalize_state_pattern_eps: float = 1e-5,
                  normalize_pattern_projection: bool = True,
                  normalize_pattern_projection_affine: bool = True,
+                 normalize_pattern_projection_eps: float = 1e-5,
                  normalize_hopfield_space: bool = False,
                  normalize_hopfield_space_affine: bool = False,
+                 normalize_hopfield_space_eps: float = 1e-5,
                  stored_pattern_as_static: bool = False,
                  state_pattern_as_static: bool = False,
                  pattern_projection_as_static: bool = False,
@@ -60,12 +64,16 @@ class Hopfield(Module):
         :param update_steps_eps: minimum difference threshold between two consecutive association update steps
         :param normalize_stored_pattern: apply normalization on stored patterns
         :param normalize_stored_pattern_affine: additionally enable affine normalization of stored patterns
+        :param normalize_stored_pattern_eps: offset of the denominator for numerical stability
         :param normalize_state_pattern: apply normalization on state patterns
         :param normalize_state_pattern_affine: additionally enable affine normalization of state patterns
+        :param normalize_state_pattern_eps: offset of the denominator for numerical stability
         :param normalize_pattern_projection: apply normalization on the pattern projection
         :param normalize_pattern_projection_affine: additionally enable affine normalization of pattern projection
+        :param normalize_pattern_projection_eps: offset of the denominator for numerical stability
         :param normalize_hopfield_space: enable normalization of patterns in the Hopfield space
         :param normalize_hopfield_space_affine: additionally enable affine normalization of patterns in Hopfield space
+        :param normalize_hopfield_space_eps: offset of the denominator for numerical stability
         :param stored_pattern_as_static: interpret specified stored patterns as being static
         :param state_pattern_as_static: interpret specified state patterns as being static
         :param pattern_projection_as_static: interpret specified pattern projections as being static
@@ -92,7 +100,8 @@ class Hopfield(Module):
             disable_out_projection=disable_out_projection, key_as_static=stored_pattern_as_static,
             query_as_static=state_pattern_as_static, value_as_static=pattern_projection_as_static,
             value_as_connected=pattern_projection_as_connected, normalize_pattern=normalize_hopfield_space,
-            normalize_pattern_affine=normalize_hopfield_space_affine)
+            normalize_pattern_affine=normalize_hopfield_space_affine,
+            normalize_pattern_eps=normalize_hopfield_space_eps)
         self.association_activation = None
         if association_activation is not None:
             self.association_activation = getattr(torch, association_activation, None)
@@ -105,7 +114,8 @@ class Hopfield(Module):
             normalized_shape = input_size if stored_pattern_size is None else stored_pattern_size
             assert normalized_shape is not None, "stored pattern size required for setting up normalisation"
             self.norm_stored_pattern = nn.LayerNorm(
-                normalized_shape=normalized_shape, elementwise_affine=normalize_stored_pattern_affine)
+                normalized_shape=normalized_shape, elementwise_affine=normalize_stored_pattern_affine,
+                eps=normalize_stored_pattern_eps)
 
         # Initialise state pattern normalization.
         self.norm_state_pattern = None
@@ -114,7 +124,8 @@ class Hopfield(Module):
         if normalize_state_pattern:
             assert input_size is not None, "input size required for setting up normalisation"
             self.norm_state_pattern = nn.LayerNorm(
-                normalized_shape=input_size, elementwise_affine=normalize_state_pattern_affine)
+                normalized_shape=input_size, elementwise_affine=normalize_state_pattern_affine,
+                eps=normalize_state_pattern_eps)
 
         # Initialise pattern projection normalization.
         self.norm_pattern_projection = None
@@ -124,7 +135,8 @@ class Hopfield(Module):
             normalized_shape = input_size if pattern_projection_size is None else pattern_projection_size
             assert normalized_shape is not None, "pattern projection size required for setting up normalisation"
             self.norm_pattern_projection = nn.LayerNorm(
-                normalized_shape=normalized_shape, elementwise_affine=normalize_pattern_projection_affine)
+                normalized_shape=normalized_shape, elementwise_affine=normalize_pattern_projection_affine,
+                eps=normalize_pattern_projection_eps)
 
         # Initialise remaining auxiliary properties.
         if self.association_core.static_execution:

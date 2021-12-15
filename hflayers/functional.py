@@ -34,6 +34,7 @@ def hopfield_core_forward(query,                           # type: Tensor
                           value_as_static=False,           # type: bool
                           value_as_connected=False,        # type: bool
                           normalize_pattern=False,         # type: bool
+                          normalize_pattern_eps=1e-5,      # type: float
                           p_norm_weight=None,              # type: Optional[Tensor]
                           p_norm_bias=None,                # type: Optional[Tensor]
                           head_dim=None,                   # type: Optional[int]
@@ -76,6 +77,7 @@ def hopfield_core_forward(query,                           # type: Tensor
         value_as_static: interpret specified key as being static.
         value_as_connected: connect value projection with key projection.
         normalize_pattern: enable normalization of patterns.
+        normalize_pattern_eps: offset of the denominator for numerical stability.
         p_norm_weight, p_norm_bias: pattern normalization weight and bias.
         head_dim: dimensionality of each head.
         pattern_dim: dimensionality of each projected value input.
@@ -132,7 +134,8 @@ def hopfield_core_forward(query,                           # type: Tensor
                 v_proj_weight=v_proj_weight, static_k=static_k, static_v=static_v,
                 key_as_static=key_as_static, query_as_static=query_as_static,
                 value_as_static=value_as_static, value_as_connected=value_as_connected,
-                normalize_pattern=normalize_pattern, p_norm_weight=p_norm_weight, p_norm_bias=p_norm_bias,
+                normalize_pattern=normalize_pattern, normalize_pattern_eps=normalize_pattern_eps,
+                p_norm_weight=p_norm_weight, p_norm_bias=p_norm_bias,
                 head_dim=head_dim, pattern_dim=pattern_dim, scaling=scaling, update_steps_max=update_steps_max,
                 update_steps_eps=update_steps_eps, return_raw_associations=return_raw_associations)
     tgt_len, bsz, embed_dim = query.shape[0], value.shape[1], query.shape[2]
@@ -323,10 +326,10 @@ def hopfield_core_forward(query,                           # type: Tensor
             if normalize_pattern:
                 q = torch.nn.functional.layer_norm(
                     input=q.reshape(shape=(-1, head_dim)), normalized_shape=(head_dim,),
-                    weight=p_norm_weight, bias=p_norm_bias).reshape(shape=q.shape)
+                    weight=p_norm_weight, bias=p_norm_bias, eps=normalize_pattern_eps).reshape(shape=q.shape)
                 k = torch.nn.functional.layer_norm(
                     input=k.reshape(shape=(-1, head_dim)), normalized_shape=(head_dim,),
-                    weight=p_norm_weight, bias=p_norm_bias).reshape(shape=k.shape)
+                    weight=p_norm_weight, bias=p_norm_bias, eps=normalize_pattern_eps).reshape(shape=k.shape)
 
         else:
             active_xi = xi.masked_select(mask=update_active_heads).view(size=(-1, *xi.shape[1:]))
