@@ -99,6 +99,9 @@ class HopfieldEncoderLayer(Module):
 
 
 class HopfieldDecoderLayer(Module):
+    """
+    Module with underlying Hopfield associations to be used as a decoder in transformer-like architectures.
+    """
 
     def __init__(self,
                  hopfield_association_self: Hopfield,
