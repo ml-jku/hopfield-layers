@@ -862,6 +862,8 @@ hopfield((K, Q, Y))
 
 - [Yannic Kilcher's video on our two papers][kilcher-video]
 
+- [Sepp Hochreiter's talk on Modern Hopfield Networks][hochreiter-video]
+
 - [Blog post on Performers from a Hopfield point of view][performer-blog]
 
 For more information visit our homepage [https://ml-jku.github.io/][ml-blog].
@@ -899,4 +901,5 @@ Contributions by Viet Tran, Bernhard Schäfl, Hubert Ramsauer, Johannes Lehner, 
 [mora-paper]: https://www.sciencedirect.com/science/article/pii/S2452310019300289
 [klambauer-paper]: http://papers.nips.cc/paper/6698-self-normalizing-neural-networks.pdf
 [kilcher-video]: https://www.youtube.com/watch?v=nv6oFDp6rNQ
+[hochreiter-video]: https://www.youtube.com/watch?v=bsdPZJKOlQs
 [performer-blog]: https://ml-jku.github.io/blog-post-performer
