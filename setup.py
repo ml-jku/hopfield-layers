@@ -1,6 +1,6 @@
 import setuptools
 
-with open(r'README.md', mode=r'r') as readme_handle:
+with open(r'README.md', mode=r'r', encoding="utf8") as readme_handle:
     long_description = readme_handle.read()
 
 setuptools.setup(
